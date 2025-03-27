@@ -128,6 +128,7 @@ public:
 
 		//m_Renderer.RenderUI();
 		
+		/*
 		// Create an ImGui window for the viewport
 		ImGui::Begin("Viewport");
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -140,7 +141,7 @@ public:
 		// Display the offscreen image in the ImGui window
 		//ImGui::Image((void*)(intptr_t)m_Renderer.GetOffscreenImageView(), viewportSize);
 		ImGui::End();
-		
+		*/
 
 	}
 

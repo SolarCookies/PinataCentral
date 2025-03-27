@@ -94,6 +94,12 @@ struct PKG {
 	std::vector<VREF> VREFs;
 };
 
+struct Streams {
+	BYTES VREF;
+	BYTES VDAT;
+	BYTES VGPU;
+};
+
 
 namespace pkg {
 
@@ -455,9 +461,16 @@ namespace pkg {
 		file.close();
 		return pkg;
 	}
+	
+	//Works in unreal so all i need to do is port over the code
+	inline static Streams UpdateStreams(VREF VREF, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+		return {}; //Need to Port over the code from Unreal to here
+	}
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
 	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath) {
+		
+		//Open Patch File and read data into BYTES
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
 		if (!patchfile.is_open()) {
 			std::cout << "Failed to open patch file: " << PatchFilePath << std::endl;
@@ -472,6 +485,78 @@ namespace pkg {
 		patchfile.close();
 		std::cout << "Patch file read in: " << timer.ElapsedMillis() << "ms" << std::endl;
 	
+		//For each vref in the pkg
+		for (int vref_i = 0; vref_i < pkg.VREFs.size(); vref_i++) {
+			//For each chunk in the vref
+			for (int chunk_i = 0; chunk_i < pkg.VREFs[vref_i].ChunkInfos.size(); chunk_i++) {
+				ChunkInfo* IndexedChunk = &pkg.VREFs[vref_i].ChunkInfos[chunk_i];
+				if (IndexedChunk->ChunkName == ChunkName) {
+					BYTES OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, patchfile);
+					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, patchfile);
+
+					Streams NewStreams;
+
+					//Check if the chunk is the same as the patch file and if the chunk is the same size
+					switch (Type) {
+					case ChunkType::VDAT:
+						if (OGVDATChunk.size() == PatchFileData.size()) {
+							if (OGVDATChunk == PatchFileData) {
+								std::cout << "Chunk is the same!" << std::endl;
+								std::cout << "Aborting..." << std::endl;
+								return;
+							}
+							else {
+								std::cout << "Patching Data Stream" << std::endl;
+								NewStreams = UpdateStreams(pkg.VREFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], PatchFileData, OGVGPUChunk);
+							}
+						}
+						else {
+							std::cout << "Chunk is different size!" << std::endl;
+							std::cout << "Aborting..." << std::endl;
+							return;
+						}
+						break;
+					case ChunkType::VGPU:
+						if (OGVGPUChunk.size() == PatchFileData.size()) {
+							if (OGVGPUChunk == PatchFileData) {
+								std::cout << "Chunk is the same!" << std::endl;
+								std::cout << "Aborting..." << std::endl;
+								return;
+							}
+							else {
+
+								std::cout << "Patching GPU Stream" << std::endl;
+								NewStreams = UpdateStreams(pkg.VREFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], OGVDATChunk, PatchFileData);
+
+							}
+						}
+						else {
+							std::cout << "Chunk is different size!" << std::endl;
+							std::cout << "Aborting..." << std::endl;
+							return;
+						}
+						break;
+					}
+
+					std::cout << "Replacing Functionality not implemented yet!" << std::endl;
+					return;
+
+					//Update CAFF
+					BYTES NewCAFF; //Need to Port over the code from Unreal to here
+
+					//Update CAFF
+
+					//Update PKG with new CAFF
+					BYTES NewPKG; //Need to Port over the code from Unreal to here
+
+					//write new pkg to file
+					Walnut::OpenFileDialog::AskSaveFile(NewPKG, NewPKGExportPath);
+
+				}
+			}
+		}
+			
+
 	}
 
 }
