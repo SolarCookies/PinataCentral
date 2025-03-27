@@ -226,7 +226,7 @@ public:
 										ImGui::SameLine();
 										if (ImGui::Button("Replace VDAT")) {
 											//select Patch file of .vdat .vgpu .chunk .dds
-											std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("VDAT Files\0*.vdat\0VGPU Files\0*.vgpu\0DDS Files\0*.dds\0\0");
+											std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("VDAT Files\0*.vdat\0\0");
 											//select NewPKGExportPath
 											std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
 
@@ -262,6 +262,32 @@ public:
 												std::ifstream file(pkg.path, std::ios::binary);
 												BYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
 												bool saved = Walnut::OpenFileDialog::AskSaveFile(VGPUData, chunk->ChunkName + ".vgpu");
+											}
+											ImGui::SameLine();
+											if (ImGui::Button("Replace VGPU")) {
+												//select Patch file of .vdat .vgpu .chunk .dds
+												std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("VGPU Files\0*.vgpu\0\0");
+												//select NewPKGExportPath
+												std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
+
+												std::string PatchFileExt = PatchFilePath.substr(PatchFilePath.find_last_of(".") + 1);
+
+												ChunkType PatchFileType;
+												if (PatchFileExt == "vdat")
+												{
+													PatchFileType = ChunkType::VDAT;
+												}
+												else if (PatchFileExt == "vgpu")
+												{
+													PatchFileType = ChunkType::VGPU;
+												}
+												else if (PatchFileExt == "dds")
+												{
+													PatchFileType = ChunkType::DDS;
+												}
+
+												//replace chunk
+												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath);
 											}
 										}
 										if (chunk->Type == FileType::DDS)

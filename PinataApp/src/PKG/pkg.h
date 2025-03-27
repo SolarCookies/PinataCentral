@@ -100,9 +100,11 @@ struct Streams {
 	BYTES VGPU;
 };
 
-//macro that returns nearest multiple of s from x (Greater then or equal too) | r =(((x - (x % s )) + s) - x)
+//macro that returns nearest multiple of s from x (Greater then or equal too) | r =(((x - (x % s )) + s) - x) | Maybe ((4014080 / 2048) + 1) * 2048?
 //#define NEAREST_MULTIPLE(x,s) (((x - (x % s )) + s) - x);
-#define NEAREST_MULTIPLE(x,s) (2048);
+//#define NEAREST_MULTIPLE(x,s) (((x / s) + 1) * 2048); //get next multiple of 2048
+#define NEAREST_MULTIPLE(x,s) (x * 2); //Doubles the offset (technically a multiple of 2 but large)
+//#define NEAREST_MULTIPLE(x,s) (x);
 
 
 namespace pkg {
@@ -256,6 +258,7 @@ namespace pkg {
 
 			//VREF Offset (4 bytes)
 			caff.VREF_Offset = Zlib::ConvertBytesToInt(Walnut::OpenFileDialog::Read_Bytes(file, 4), pkg.IsBigEndian);
+			std::cout << "VREF Offset: " << caff.VREF_Offset << std::endl;
 
 			//Skip 4 unknown bytes
 			Walnut::OpenFileDialog::SeekCur(file, 4);
@@ -289,9 +292,11 @@ namespace pkg {
 
 			//VLUT Compressed Size (4 bytes)
 			caff.VLUT_Compressed_Size = Zlib::ConvertBytesToInt(Walnut::OpenFileDialog::Read_Bytes(file, 4), pkg.IsBigEndian);
+			std::cout << "VLUT Compressed Size: " << caff.VLUT_Compressed_Size << std::endl;
 
 			//VLUT Offset is VRef Offset + VRef Compressed Size
 			caff.VLUT_Offset = caff.VREF_Offset + caff.VREF_Compressed_Size;
+			std::cout << "VLUT Offset: " << caff.VLUT_Offset << std::endl;
 
 			pkg.CAFFs.push_back(caff);
 		}
@@ -307,11 +312,13 @@ namespace pkg {
 			uint32_t offset = 9;
 
 			VREF.VDAT_Uncompressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+			std::cout << "VDAT Uncompressed Size: " << VREF.VDAT_Uncompressed_Size << std::endl;
 
 			offset += 20;
 
 			//VDAT Compressed Size (4 bytes)
 			VREF.VDAT_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+			std::cout << "VDAT Compressed Size: " << VREF.VDAT_Compressed_Size << std::endl;
 
 
 			offset += 20;
@@ -322,19 +329,23 @@ namespace pkg {
 
 			//VGPU Uncompressed Size (4 bytes)
 			VREF.VGPU_Uncompressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+			std::cout << "VGPU Uncompressed Size: " << VREF.VGPU_Uncompressed_Size << std::endl;
 
 			offset += 20;
 
 			//VGPU Compressed Size (4 bytes)
 			VREF.VGPU_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+			std::cout << "VGPU Compressed Size: " << VREF.VGPU_Compressed_Size << std::endl;
 
 			offset = 81;
 
 			//VLUT_OFFSET + VLUT_Compressed_Size
 			VREF.VDAT_Offset = C.VLUT_Offset + C.VLUT_Compressed_Size;
+			std::cout << "VDAT Offset: " << VREF.VDAT_Offset << std::endl;
 
 			//VDAT_OFFSET + VDAT_Compressed_Size
 			VREF.VGPU_Offset = VREF.VDAT_Offset + VREF.VDAT_Compressed_Size;
+			std::cout << "VGPU Offset: " << VREF.VGPU_Offset << std::endl;
 
 			//for each chunk
 			for (int i = 0; i < (C.ChunkCount - 1); i++) {
@@ -488,33 +499,36 @@ namespace pkg {
 
 		file.close();
 
-		std::cout << "Patching VDAT" << std::endl;
+		std::cout << "Patching VDAT at: " << ChunkInfo.VDAT_Offset << " with size: " << ChunkInfo.VDAT_Size << std::endl;
 
-		for (int i = ChunkInfo.VDAT_Offset; i < ChunkInfo.VDAT_Size; i++) {
-			
-			if (PatchedStreams.VDAT[i] != VDAT[i]) {
-				std::cout << "Patching VDAT offset: " << i << "OG Byte: " << (int)PatchedStreams.VDAT[i] << " New Byte: " << (int)VDAT[i] << std::endl;
-			}
-			PatchedStreams.VDAT[i] = VDAT[i];
-			
+		//Patching VDAT
+		for (int i = 0; i < VDAT.size(); i++) {
+			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
 		}
-		std::cout << "Patched: " << ChunkInfo.VDAT_Size << " Bytes At offset: " << ChunkInfo.VDAT_Offset << std::endl;
+
+		std::cout << "Patched VDAT" << std::endl;
 
 		
 		if (ChunkInfo.HasVGPU){
 			std::cout << "Patching VGPU" << std::endl;
-			for (int i = ChunkInfo.VGPU_Offset; i < ChunkInfo.VGPU_Size; i++) {
-				PatchedStreams.VGPU[i] = VGPU[i];
+
+			//Patching VGPU
+			for (int i = 0; i < VGPU.size(); i++) {
+				PatchedStreams.VGPU[ChunkInfo.VGPU_Offset + i] = VGPU[i];
 			}
+
+			
 			std::cout << "Patched: " << ChunkInfo.VGPU_Size << " Bytes At offset: " << ChunkInfo.VGPU_Offset << std::endl;
 		}
 
 		std::cout << "Patched Streams.." << std::endl;
+
+
 		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
 	}
 
-	//Returns full caff patched with new data
-	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams* NewStreams, bool BigEndian) {
+	//Returns full caff patched with new data 
+	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian, std::string ExportPath) {
 
 		BYTES NewCAFF;
 
@@ -524,49 +538,62 @@ namespace pkg {
 			return NewCAFF;
 		}
 
-		int VREF_Uncompressed_Size = NewStreams->VREF.size();
+		int VREF_Uncompressed_Size = NewStreams.VREF.size();
 		std::cout << "VREF Uncompressed Size: " << VREF_Uncompressed_Size << std::endl;
 
-		int VDAT_Uncompressed_Size = NewStreams->VDAT.size();
+		int VDAT_Uncompressed_Size = NewStreams.VDAT.size();
 		std::cout << "VDAT Uncompressed Size: " << VDAT_Uncompressed_Size << std::endl;
 
-		int VGPU_Uncompressed_Size = NewStreams->VGPU.size();
+		int VGPU_Uncompressed_Size = NewStreams.VGPU.size();
 		std::cout << "VGPU Uncompressed Size: " << VGPU_Uncompressed_Size << std::endl;
 
 		//Compress VDAT
-		BYTES VDAT_Compressed = Zlib::CompressData(NewStreams->VDAT);
+		BYTES VDAT_Compressed = Zlib::CompressData(NewStreams.VDAT);
 		std::cout << "VDAT Compressed Size: " << VDAT_Compressed.size() << std::endl;
 
 		//Compress VGPU
-		BYTES VGPU_Compressed = Zlib::CompressData(NewStreams->VGPU);
+		BYTES VGPU_Compressed = Zlib::CompressData(NewStreams.VGPU);
 		std::cout << "VGPU Compressed Size: " << VGPU_Compressed.size() << std::endl;
 
+		BYTES ModifiedVRef = NewStreams.VREF;
 		//Set VREF VDAT Uncompressed Size at offset 9
-		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 9, VDAT_Uncompressed_Size, BigEndian);
+		std::cout << "Setting VDAT Uncompressed Size at offset 9: " << VDAT_Uncompressed_Size << std::endl;
+		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 9, VDAT_Uncompressed_Size, BigEndian);
 
 		//Set VREF VDAT Compressed Size at offset 29
-		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 29, VDAT_Compressed.size(), BigEndian);
+		std::cout << "Setting VDAT Compressed Size at offset 29: " << VDAT_Compressed.size() << std::endl;
+		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 29, VDAT_Compressed.size(), BigEndian);
 
 		//Set VREF VGPU Uncompressed Size at offset 42
-		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 42, VGPU_Uncompressed_Size, BigEndian);
+		std::cout << "Setting VGPU Uncompressed Size at offset 42: " << VGPU_Uncompressed_Size << std::endl;
+		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 42, VGPU_Uncompressed_Size, BigEndian);
 
 		//Set VREF VGPU Compressed Size at offset 62
-		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 62, VGPU_Compressed.size(), BigEndian);
+		std::cout << "Setting VGPU Compressed Size at offset 62: " << VGPU_Compressed.size() << std::endl;
+		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 62, VGPU_Compressed.size(), BigEndian);
 
+		//set new VDAT and VGPU offsets
+		//Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 81, Caff.VLUT_Offset + Caff.VLUT_Compressed_Size, BigEndian);
+		//Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 96, Caff.VLUT_Offset + Caff.VLUT_Compressed_Size + VDAT_Compressed.size(), BigEndian);
+
+		std::cout << "Old VREF Size: " << NewStreams.VREF.size() << " New VREF Size: " << ModifiedVRef.size() << std::endl;
+
+		
 		//compress VREF
-		BYTES VREF_Compressed = Zlib::CompressData(NewStreams->VREF);
+		BYTES VREF_Compressed = Zlib::CompressData(ModifiedVRef);
+		
+		std::cout << "Old VREF Compressed Size: " << Caff.VREF_Compressed_Size << " New VREF Compressed Size: " << VREF_Compressed.size() << std::endl;
 		std::cout << "VREF Compressed Size: " << VREF_Compressed.size() << std::endl;
 
-		BYTES VLUT_Compressed = Zlib::CompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size));
+		BYTES VLUT_Uncompressed = Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size), Caff.VLUT_Uncompressed_Size);
+
+
+		BYTES VLUT_Compressed = Zlib::CompressData(VLUT_Uncompressed);
+
+
 		std::cout << "VLUT Compressed Size: " << VLUT_Compressed.size() << std::endl;
 
-		std::cout << "Reading CAFF Header" << std::endl;
-		std::cout << "CAFF Offset: " << Caff.CAFF_Info.Offset << " VREF Offset AKA Caff header size: " << Caff.VREF_Offset << std::endl;
 		BYTES CAFFHeader = Walnut::OpenFileDialog::Read_Bytes(file, Caff.CAFF_Info.Offset, Caff.VREF_Offset);
-		for (int i = 0; i < CAFFHeader.size(); i++) {
-			NewCAFF.push_back(CAFFHeader[i]);
-			std::cout << "CAFF Header Byte: " << i << " Value: " << (int)CAFFHeader[i] << std::endl;
-		}
 
 		//Set VREF Uncompressed Size at offset 80 of CAFFHeader
 		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 80, VREF_Uncompressed_Size, BigEndian);
@@ -575,13 +602,11 @@ namespace pkg {
 		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 96, VREF_Compressed.size(), BigEndian);
 
 		//construct new CAFF
-		//NewCAFF = CAFFHeader;
+		NewCAFF = CAFFHeader;
 		NewCAFF.insert(NewCAFF.end(), VREF_Compressed.begin(), VREF_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VLUT_Compressed.begin(), VLUT_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VDAT_Compressed.begin(), VDAT_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VGPU_Compressed.begin(), VGPU_Compressed.end());
-
-
 
 		return NewCAFF; // BP code:(https://blueprintue.com/blueprint/vv97_nrk/)
 	}
@@ -598,6 +623,8 @@ namespace pkg {
 
 		//For each CAFF Info
 		for (int i = 0; i < pkg.CAFF_Infos.size(); i++) {
+
+			std::cout << "Working on CAFF Number: " << i << " Out of: " << pkg.CAFF_Infos.size() << std::endl;
 
 			CAFF_Info NewCAFFInfo;
 
@@ -618,16 +645,21 @@ namespace pkg {
 			if (CaffNumber - 1 == CAFFNumber) {
 				//Set New CAFF Infos
 
-				//Get Next Offset multiple of 2048
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				//std::cout << "Old CAFF Offset: " << CaffOffset << " New CAFF Offset: " << NextOffset << std::endl;
+
+				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset evenually
+
 				std::cout << "Old CAFF Offset: " << CaffOffset << " New CAFF Offset: " << NextOffset << std::endl;
 
 				//resize NewPKG to fit new CAFF offset (if needed)
 				if (NextOffset > NewPKG.size()) {
+					std::cout << "Resizing NewPKG to fit new CAFF offset" << std::endl;
 					NewPKG.resize(NextOffset);
+					std::cout << "NewPKG Size: " << NewPKG.size() << std::endl;
 				}
 
-				NewCAFFInfo.Offset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				NewCAFFInfo.Offset = NextOffset;
 
 				//Insert New CAFF
 				NewPKG.insert(NewPKG.end(), NewCAFF.begin(), NewCAFF.end());
@@ -638,15 +670,20 @@ namespace pkg {
 			}
 			else {
 
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				
+				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset evenually
+
 				std::cout << "Old CAFF Offset: " << CaffOffset << " New CAFF Offset: " << NextOffset << std::endl;
 
 				//resize NewPKG to fit new CAFF offset (if needed)
 				if (NextOffset > NewPKG.size()) {
+					std::cout << "Resizing NewPKG to fit new CAFF offset" << std::endl;
 					NewPKG.resize(NextOffset);
+					std::cout << "NewPKG Size: " << NewPKG.size() << std::endl;
 				}
 
-				NewCAFFInfo.Offset = NEAREST_MULTIPLE(CaffOffset, 2048);
+				NewCAFFInfo.Offset = NextOffset;
 
 				//Copy CAFF
 				BYTES CAFF = Walnut::OpenFileDialog::Read_Bytes(file, CaffOffset, CaffSize);
@@ -704,6 +741,7 @@ namespace pkg {
 		}
 		patchfile.close();
 
+
 		std::ifstream file(pkg.path, std::ios::binary);
 
 		//remove last byte of patch file data, Removes a null byte at the end of the file that is added by the while loop?
@@ -715,8 +753,12 @@ namespace pkg {
 		for (int vref_i = 0; vref_i < pkg.VREFs.size(); vref_i++) {
 			//For each chunk in the vref
 			for (int chunk_i = 0; chunk_i < pkg.VREFs[vref_i].ChunkInfos.size(); chunk_i++) {
+				
 				ChunkInfo* IndexedChunk = &pkg.VREFs[vref_i].ChunkInfos[chunk_i];
 				if (IndexedChunk->ChunkName == ChunkName) {
+
+					std::cout << "Working on VREF: " << vref_i << " Out of: " << pkg.VREFs.size() << std::endl;
+					std::cout << "Working on Chunk: " << chunk_i << " Out of: " << pkg.VREFs[vref_i].ChunkInfos.size() << std::endl;
 
 					BYTES OGVGPUChunk;
 					if (IndexedChunk->HasVGPU) {
@@ -780,8 +822,10 @@ namespace pkg {
 						break;
 					}
 
+					
+
 					//Update CAFF
-					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], &NewStreams, pkg.IsBigEndian);
+					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian, NewPKGExportPath);
 
 					//Update PKG with new CAFF
 					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
