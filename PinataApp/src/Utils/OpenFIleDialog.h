@@ -238,5 +238,13 @@ namespace Walnut
 			}
 			return Result;
 		}
+
+		inline static void SetIntAtOffset(BYTES& Data, uint32_t Offset, uint32_t Value, bool BigEndian) {
+			BYTES IntBytes = Zlib::ConvertIntToBytes(Value, BigEndian);
+			for (int i = 0; i < 4; i++) {
+				Data[Offset + i] = IntBytes[i];
+				//std::cout << "Byte: " << i << " Value: " << (int)IntBytes[i] << std::endl;
+			}
+		}
 	};
 }

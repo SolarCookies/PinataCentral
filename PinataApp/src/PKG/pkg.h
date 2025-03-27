@@ -101,7 +101,8 @@ struct Streams {
 };
 
 //macro that returns nearest multiple of s from x (Greater then or equal too) | r =(((x - (x % s )) + s) - x)
-#define NEAREST_MULTIPLE(x,s) (((x - (x % s )) + s) - x);
+//#define NEAREST_MULTIPLE(x,s) (((x - (x % s )) + s) - x);
+#define NEAREST_MULTIPLE(x,s) (2048);
 
 
 namespace pkg {
@@ -127,10 +128,6 @@ namespace pkg {
 	}
 
 	inline static BYTES GetChunkVDATBYTES(uint32_t CAFFNumber, uint32_t ChunkNumber, PKG package, std::ifstream& file) {
-		std::cout << "ChunkNumber: " << ChunkNumber << std::endl;
-		std::cout << "VDAT_Offset: " << package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Offset << std::endl;
-		std::cout << "VDAT_Size: " << package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Size << std::endl;
-		std::cout << "CAFFNumber: " << CAFFNumber << std::endl;
 		return Walnut::OpenFileDialog::CopyBytes(GetVDATBYTES(CAFFNumber, package, file), package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Offset, package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Size);
 	}
 
@@ -474,7 +471,6 @@ namespace pkg {
 	inline static Streams UpdateStreams(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
 		Streams PatchedStreams;
 
-		std::cout << "Opening file: " << pkg.path << std::endl;
 		std::ifstream file(pkg.path, std::ios::binary);
 		if (!file.is_open()) {
 			std::cout << "Failed to open file: " << pkg.path << std::endl;
@@ -484,45 +480,49 @@ namespace pkg {
 		std::cout << "Reading VREF" << std::endl;
 		PatchedStreams.VREF = GetVREFBYTES(file, Caff);
 
-		std::cout << "Reading VDAT" << std::endl;
-		PatchedStreams.VDAT = GetVDATBYTES(Caff.CAFF_Info.Number, pkg, file);
+		std::cout << "Reading VDAT on CAFF: " << Caff.CAFF_Info.Number - 1  << std::endl;
+		PatchedStreams.VDAT = GetVDATBYTES(Caff.CAFF_Info.Number - 1, pkg, file);
 
-		std::cout << "Reading VGPU" << std::endl;
-		PatchedStreams.VGPU = GetVGPUBYTES(Caff.CAFF_Info.Number, pkg, file);
+		std::cout << "Reading VGPU on CAFF: " << Caff.CAFF_Info.Number - 1 << std::endl;
+		PatchedStreams.VGPU = GetVGPUBYTES(Caff.CAFF_Info.Number - 1, pkg, file);
 
 		file.close();
 
 		std::cout << "Patching VDAT" << std::endl;
-		BYTES TempVDAT = PatchedStreams.VDAT;
+
 		for (int i = ChunkInfo.VDAT_Offset; i < ChunkInfo.VDAT_Size; i++) {
 			
-			TempVDAT[i] = VDAT[i];
+			if (PatchedStreams.VDAT[i] != VDAT[i]) {
+				std::cout << "Patching VDAT offset: " << i << "OG Byte: " << (int)PatchedStreams.VDAT[i] << " New Byte: " << (int)VDAT[i] << std::endl;
+			}
+			PatchedStreams.VDAT[i] = VDAT[i];
 			
 		}
 		std::cout << "Patched: " << ChunkInfo.VDAT_Size << " Bytes At offset: " << ChunkInfo.VDAT_Offset << std::endl;
 
-		BYTES TempVGPU = PatchedStreams.VGPU;
+		
 		if (ChunkInfo.HasVGPU){
 			std::cout << "Patching VGPU" << std::endl;
 			for (int i = ChunkInfo.VGPU_Offset; i < ChunkInfo.VGPU_Size; i++) {
-				TempVGPU[i] = VGPU[i];
+				PatchedStreams.VGPU[i] = VGPU[i];
 			}
 			std::cout << "Patched: " << ChunkInfo.VGPU_Size << " Bytes At offset: " << ChunkInfo.VGPU_Offset << std::endl;
 		}
-
-		PatchedStreams.VDAT = TempVDAT;
-		PatchedStreams.VGPU = TempVGPU;
 
 		std::cout << "Patched Streams.." << std::endl;
 		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
 	}
 
 	//Returns full caff patched with new data
-	inline static BYTES UpdateCAFF(VREF VREF, CAFF Caff, Streams* NewStreams, bool BigEndian) {
+	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams* NewStreams, bool BigEndian) {
 
 		BYTES NewCAFF;
 
-		std::ifstream file(VREF.CAFF.PKGpath, std::ios::binary);
+		std::ifstream file(pkg.path, std::ios::binary);
+		if (!file.is_open()) {
+			std::cout << "Failed to open file: " << VREF.CAFF.PKGpath << std::endl;
+			return NewCAFF;
+		}
 
 		int VREF_Uncompressed_Size = NewStreams->VREF.size();
 		std::cout << "VREF Uncompressed Size: " << VREF_Uncompressed_Size << std::endl;
@@ -541,30 +541,17 @@ namespace pkg {
 		BYTES VGPU_Compressed = Zlib::CompressData(NewStreams->VGPU);
 		std::cout << "VGPU Compressed Size: " << VGPU_Compressed.size() << std::endl;
 
-		BYTES VDAT_Uncompressed_Size_B = Zlib::ConvertIntToBytes(VDAT_Uncompressed_Size, BigEndian);
-		BYTES VDAT_Compressed_Size_B = Zlib::ConvertIntToBytes(VDAT_Compressed.size(), BigEndian);
-		BYTES VGPU_Uncompressed_Size_B = Zlib::ConvertIntToBytes(VGPU_Uncompressed_Size, BigEndian);
-		BYTES VGPU_Compressed_Size_B = Zlib::ConvertIntToBytes(VGPU_Compressed.size(), BigEndian);
-
 		//Set VREF VDAT Uncompressed Size at offset 9
-		for (int i = 0; i < VDAT_Uncompressed_Size_B.size(); i++) {
-			NewStreams->VREF[9 + i] = VDAT_Uncompressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 9, VDAT_Uncompressed_Size, BigEndian);
 
 		//Set VREF VDAT Compressed Size at offset 29
-		for (int i = 0; i < VDAT_Compressed_Size_B.size(); i++) {
-			NewStreams->VREF[29 + i] = VDAT_Compressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 29, VDAT_Compressed.size(), BigEndian);
 
 		//Set VREF VGPU Uncompressed Size at offset 42
-		for (int i = 0; i < VGPU_Uncompressed_Size_B.size(); i++) {
-			NewStreams->VREF[42 + i] = VGPU_Uncompressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 42, VGPU_Uncompressed_Size, BigEndian);
 
 		//Set VREF VGPU Compressed Size at offset 62
-		for (int i = 0; i < VGPU_Compressed_Size_B.size(); i++) {
-			NewStreams->VREF[62 + i] = VGPU_Compressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(NewStreams->VREF, 62, VGPU_Compressed.size(), BigEndian);
 
 		//compress VREF
 		BYTES VREF_Compressed = Zlib::CompressData(NewStreams->VREF);
@@ -573,22 +560,22 @@ namespace pkg {
 		BYTES VLUT_Compressed = Zlib::CompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size));
 		std::cout << "VLUT Compressed Size: " << VLUT_Compressed.size() << std::endl;
 
+		std::cout << "Reading CAFF Header" << std::endl;
+		std::cout << "CAFF Offset: " << Caff.CAFF_Info.Offset << " VREF Offset AKA Caff header size: " << Caff.VREF_Offset << std::endl;
 		BYTES CAFFHeader = Walnut::OpenFileDialog::Read_Bytes(file, Caff.CAFF_Info.Offset, Caff.VREF_Offset);
+		for (int i = 0; i < CAFFHeader.size(); i++) {
+			NewCAFF.push_back(CAFFHeader[i]);
+			std::cout << "CAFF Header Byte: " << i << " Value: " << (int)CAFFHeader[i] << std::endl;
+		}
 
 		//Set VREF Uncompressed Size at offset 80 of CAFFHeader
-		BYTES VREF_Uncompressed_Size_B = Zlib::ConvertIntToBytes(VREF_Uncompressed_Size, BigEndian);
-		for (int i = 0; i < VREF_Uncompressed_Size_B.size(); i++) {
-			CAFFHeader[80 + i] = VREF_Uncompressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 80, VREF_Uncompressed_Size, BigEndian);
 
 		//Set VREF Compressed Size at offset 96 of CAFFHeader
-		BYTES VREF_Compressed_Size_B = Zlib::ConvertIntToBytes(VREF_Compressed.size(), BigEndian);
-		for (int i = 0; i < VREF_Compressed_Size_B.size(); i++) {
-			CAFFHeader[96 + i] = VREF_Compressed_Size_B[i];
-		}
+		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 96, VREF_Compressed.size(), BigEndian);
 
 		//construct new CAFF
-		NewCAFF = CAFFHeader;
+		//NewCAFF = CAFFHeader;
 		NewCAFF.insert(NewCAFF.end(), VREF_Compressed.begin(), VREF_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VLUT_Compressed.begin(), VLUT_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VDAT_Compressed.begin(), VDAT_Compressed.end());
@@ -627,7 +614,8 @@ namespace pkg {
 				NewPKG.insert(NewPKG.end(), PKG.begin(), PKG.begin() + pkg.CAFF_Infos[0].Offset);
 			}
 
-			if (CaffNumber == CAFFNumber) {
+			
+			if (CaffNumber - 1 == CAFFNumber) {
 				//Set New CAFF Infos
 
 				//Get Next Offset multiple of 2048
@@ -639,12 +627,12 @@ namespace pkg {
 					NewPKG.resize(NextOffset);
 				}
 
-				NewCAFFInfo.Offset = NewPKG.size();
+				NewCAFFInfo.Offset = NEAREST_MULTIPLE(CaffOffset, 2048);
 
 				//Insert New CAFF
 				NewPKG.insert(NewPKG.end(), NewCAFF.begin(), NewCAFF.end());
 
-				NewCAFFInfo.Size = NewPKG.size();
+				NewCAFFInfo.Size = NewCAFF.size();
 
 				NewCAFFInfos.push_back(NewCAFFInfo);
 			}
@@ -658,13 +646,13 @@ namespace pkg {
 					NewPKG.resize(NextOffset);
 				}
 
-				NewCAFFInfo.Offset = NewPKG.size();
+				NewCAFFInfo.Offset = NEAREST_MULTIPLE(CaffOffset, 2048);
 
 				//Copy CAFF
 				BYTES CAFF = Walnut::OpenFileDialog::Read_Bytes(file, CaffOffset, CaffSize);
 				NewPKG.insert(NewPKG.end(), CAFF.begin(), CAFF.end());
 
-				NewCAFFInfo.Size = NewPKG.size();
+				NewCAFFInfo.Size = CAFF.size();
 
 				NewCAFFInfos.push_back(NewCAFFInfo);
 			}
@@ -672,32 +660,27 @@ namespace pkg {
 
 		//Set New PKG CAFF Infos
 		for (int i = 0; i < NewCAFFInfos.size(); i++) {
-			//Convert NewCAFFInfos ints to BYTES
-			BYTES NewCaffOffset_b = Zlib::ConvertIntToBytes(NewCAFFInfos[i].Offset, pkg.IsBigEndian);
-			BYTES NewCaffSize_b = Zlib::ConvertIntToBytes(NewCAFFInfos[i].Size, pkg.IsBigEndian);
-			BYTES NewCaffNumber_b = Zlib::ConvertIntToBytes(NewCAFFInfos[i].Number, pkg.IsBigEndian);
-			BYTES NewCaffUnknown_b = Zlib::ConvertIntToBytes(NewCAFFInfos[i].Unknown, pkg.IsBigEndian);
+			
+			//set CAFF unknown at offset ((Caff Number - 1) * 12) + 8
+			int UnknownOffset = ((NewCAFFInfos[i].Number - 1) * 12) + 8;
+			std::cout << "Old Unknown: " << pkg.CAFF_Infos[i].Unknown << " New Unknown: " << NewCAFFInfos[i].Unknown << std::endl;
+			//print bytes
+			std::cout << "Writing Unknown at offset: " << UnknownOffset << std::endl;
+				Walnut::OpenFileDialog::SetIntAtOffset(NewPKG, UnknownOffset, NewCAFFInfos[i].Unknown, pkg.IsBigEndian);
 
-			//replace PKG Header VAlues
-			for (int j = 0; j < 4; j++) {
-				NewPKG[(((NewCAFFInfos[i].Number - 1) * 12) + 8)] = NewCaffUnknown_b[j];
-				NewPKG[(((NewCAFFInfos[i].Number - 1) * 12) + 9)] = NewCaffUnknown_b[j+1];
-				NewPKG[(((NewCAFFInfos[i].Number - 1) * 12) + 10)] = NewCaffUnknown_b[j + 2];
-				NewPKG[(((NewCAFFInfos[i].Number - 1) * 12) + 11)] = NewCaffUnknown_b[j + 3];
+			//set CAFF offset at offset (((Caff Number - 1) * 12) + 8) + 4
+			int OffsetOffset = ((NewCAFFInfos[i].Number - 1) * 12) + 8 + 4;
+			std::cout << "Old Offset: " << pkg.CAFF_Infos[i].Offset << " New Offset: " << NewCAFFInfos[i].Offset << std::endl;
+			//print bytes
+			std::cout << "Writing Offset at offset: " << OffsetOffset << std::endl;
+			Walnut::OpenFileDialog::SetIntAtOffset(NewPKG, OffsetOffset, NewCAFFInfos[i].Offset, pkg.IsBigEndian);
 
-				NewPKG[((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 4)] = NewCaffOffset_b[j];
-				NewPKG[((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 5)] = NewCaffOffset_b[j + 1];
-				NewPKG[((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 6)] = NewCaffOffset_b[j + 2];
-				NewPKG[((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 7)] = NewCaffOffset_b[j + 3];
-
-				NewPKG[(((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 4) + 4)] = NewCaffSize_b[j];
-				NewPKG[(((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 4) + 5)] = NewCaffSize_b[j + 1];
-				NewPKG[(((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 4) + 6)] = NewCaffSize_b[j + 2];
-				NewPKG[(((((NewCAFFInfos[i].Number - 1) * 12) + 8) + 4) + 7)] = NewCaffSize_b[j + 3];
-
-			}
-
-
+			//set CAFF size at offset (((Caff Number - 1) * 12) + 8) + 8
+			int SizeOffset = ((NewCAFFInfos[i].Number - 1) * 12) + 8 + 8;
+			std::cout << "Old Size: " << pkg.CAFF_Infos[i].Size << " New Size: " << NewCAFFInfos[i].Size << std::endl;
+			//print bytes
+			std::cout << "Writing Size at offset: " << SizeOffset << std::endl;
+			Walnut::OpenFileDialog::SetIntAtOffset(NewPKG, SizeOffset, NewCAFFInfos[i].Size, pkg.IsBigEndian);
 		}
 
 
@@ -797,19 +780,27 @@ namespace pkg {
 						break;
 					}
 
-					//std::cout << "Replacing Functionality not implemented yet!" << std::endl;
-					//return;
-
 					//Update CAFF
-					BYTES NewCAFF = UpdateCAFF(pkg.VREFs[vref_i], pkg.CAFFs[vref_i], &NewStreams, pkg.IsBigEndian);
+					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], &NewStreams, pkg.IsBigEndian);
 
 					//Update PKG with new CAFF
-					//BYTES NewPKG;// = UpdatePKG(pkg, NewCAFF, vref_i);
+					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
 
 					std::cout << "Writing new PKG file..." << std::endl;
 					std::cout << "New CAFF Size: " << NewCAFF.size() << std::endl;
-					//std::cout << "New PKG Size: " << NewPKG.size() << std::endl;
+					std::cout << "New PKG Size: " << NewPKG.size() << std::endl;
 					
+					//Write new PKG to file
+					std::ofstream newpkgfile(NewPKGExportPath + "\\1_Patched.pkg", std::ios::binary);
+					if (!newpkgfile.is_open()) {
+						std::cout << "Failed to open new PKG file: " << NewPKGExportPath + "\\1_Patched.pkg" << std::endl;
+						std::cout << "Creating new PKG file..." << std::endl;
+					}
+					else {
+						newpkgfile.write((char*)NewPKG.data(), NewPKG.size());
+						newpkgfile.close();
+						std::cout << "New PKG file written!" << std::endl;
+					}
 
 				}
 			}
