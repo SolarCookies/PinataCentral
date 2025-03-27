@@ -464,7 +464,9 @@ namespace pkg {
 	
 	//Works in unreal so all i need to do is port over the code
 	inline static Streams UpdateStreams(VREF VREF, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
-		return {}; //Need to Port over the code from Unreal to here
+
+		return {}; //Need to Port over the code from Unreal to here	| BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+
 	}
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
@@ -542,12 +544,12 @@ namespace pkg {
 					return;
 
 					//Update CAFF
-					BYTES NewCAFF; //Need to Port over the code from Unreal to here
+					BYTES NewCAFF; //Need to Port over the code from Unreal to here | BP code:(https://blueprintue.com/blueprint/vv97_nrk/)
 
 					//Update CAFF
 
 					//Update PKG with new CAFF
-					BYTES NewPKG; //Need to Port over the code from Unreal to here
+					BYTES NewPKG; //Need to Port over the code from Unreal to here | BP code:(https://blueprintue.com/blueprint/6dd8sfb8/)
 
 					//write new pkg to file
 					Walnut::OpenFileDialog::AskSaveFile(NewPKG, NewPKGExportPath);
