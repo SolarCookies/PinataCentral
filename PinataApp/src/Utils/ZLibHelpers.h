@@ -11,10 +11,7 @@
 namespace Zlib {
 
 	// Compresses data based on input size
-	inline static BYTES CompressData(BYTES& data, uint32_t CompressSize) {
-		if (CompressSize == data.size()) {
-			return data;
-		}
+	inline static BYTES CompressData(BYTES& data) {
 
 		BYTES Result;
 		const size_t Buffer_Size = 128 * 1024;
@@ -61,40 +58,52 @@ namespace Zlib {
 		return Result;
 	}
 
-	// Decompresses data based on input size
-	inline static BYTES DecompressData(BYTES& data, uint32_t DecompressSize) {
-		if (DecompressSize == data.size()) {
-			return data;
+    // Decompresses data based on input size
+    inline static BYTES DecompressData(BYTES& data, uint32_t DecompressSize) {
+        if (DecompressSize == data.size()) {
+            return data;
+        }
+		if (data.size() > DecompressSize) {
+			std::cout << "Compressed Size is greater than Decompress Size.." << std::endl;
+			return {};
 		}
 
-		BYTES Result(DecompressSize);
+        BYTES Result(DecompressSize);
 
-		z_stream Stream = {};
-		Stream.avail_in = data.size();
-		Stream.next_in = (Bytef*)data.data();
-		Stream.avail_out = Result.size();
-		Stream.next_out = Result.data();
+        z_stream Stream = {};
+        Stream.avail_in = static_cast<uInt>(data.size());
+        Stream.next_in = (Bytef*)data.data();
+        Stream.avail_out = static_cast<uInt>(Result.size());
+        Stream.next_out = Result.data();
 
-		if (inflateInit(&Stream) != Z_OK) {
-			std::cout << "Error initializing Decompression!";
-			return Result;
-		}
+        if (inflateInit(&Stream) != Z_OK) {
+            std::cout << "Error initializing Decompression!";
+            return Result;
+        }
 
-		int Ret = inflate(&Stream, Z_FINISH);
-		if (Ret != Z_STREAM_END) {
-			inflateEnd(&Stream);
-			std::cout << "Decompression Error!";
-			return Result;
-		}
+        int Ret = inflate(&Stream, Z_FINISH);
+        if (Ret != Z_STREAM_END) {
+            inflateEnd(&Stream);
+            std::cout << "Decompression Error!" << std::endl;
+            std::cout << "Error Code: " << Ret << std::endl;
+            if (Stream.msg != nullptr) {
+                std::cout << "Error Message: " << Stream.msg << std::endl;
+            }
+			if (Ret == Z_BUF_ERROR) {
+				std::cout << "Buffer Error: Not enough room in the output buffer!" << std::endl;
+			}
 
-		inflateEnd(&Stream);
+            return Result;
+        }
 
-		if (Stream.total_out != DecompressSize) {
-			Result.resize(Stream.total_out);
-		}
+        inflateEnd(&Stream);
 
-		return Result;
-	}
+        if (Stream.total_out != DecompressSize) {
+            Result.resize(Stream.total_out);
+        }
+
+        return Result;
+    }
 
 	// For 32 bit/4 byte ints
 	inline static uint32_t ConvertBytesToInt(BYTES& data, bool isBigEndian) {
