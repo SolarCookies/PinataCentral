@@ -456,6 +456,7 @@ namespace pkg {
 		return pkg;
 	}
 
+	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
 	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath) {
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
 		if (!patchfile.is_open()) {

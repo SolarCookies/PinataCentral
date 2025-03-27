@@ -144,18 +144,12 @@ public:
 
 	}
 
-	//This runs every frame and is used to render the scene
+	//This runs every frame and is used to render the 3d scene
 	virtual void OnRender() override
 	{
-		// Lets Draw Some Stuff
-
-		// 1. bind pipeline
-		// 2. bind vertex/index buffers
-		// 3. draw call
-		//get all window data
-
-		//m_Renderer.Render(Walnut::Application::GetMainWindowData(), m_Viewport.m_ViewportWidth, m_Viewport.m_ViewportHeight);
-	// Render the model to the offscreen framebuffer
+		
+		
+		// Render the model to the offscreen framebuffer
 		//m_Renderer.Render(Walnut::Application::GetMainWindowData(), m_Viewport.m_ViewportWidth, m_Viewport.m_ViewportHeight);
 		//std::cout << "Rendered" << std::endl;
 		
@@ -164,8 +158,8 @@ public:
 	//This runs on begin play and is used to initialize the renderer along with other things that need to be initialized before the app renders for the first time
 	virtual void OnAttach() override
 	{
-		//m_Renderer.Init(Walnut::Application::GetMainWindowData());
 
+		//m_Renderer.Init(Walnut::Application::GetMainWindowData());
 		//m_Viewport.run();
 	}
 
