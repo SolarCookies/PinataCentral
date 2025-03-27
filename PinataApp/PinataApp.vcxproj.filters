@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Rendering">
+      <UniqueIdentifier>{E3AE1F7C-4F19-D4F2-9857-85980401B247}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{F68B420E-62A0-6ABF-2B22-0E1F97F566F0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{81187b2e-5bc5-4362-a052-2c7d53475851}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\FileBrowser">
+      <UniqueIdentifier>{f362d178-0435-4b60-ae9c-63f3852cf097}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\FileBrowser\Files">
+      <UniqueIdentifier>{76cab6bf-dc44-4ca3-9b3e-4aa69806d5c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PKG">
+      <UniqueIdentifier>{e920b699-e6ad-4296-9f47-1036db9da27f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Rendering\Renderer.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Rendering\Viewport.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\OpenFIleDialog.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\OpenOBJ.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\VulkanUtils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\ini.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\FileBrowser\FileBrowser.h">
+      <Filter>UI\FileBrowser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\ZLibHelpers.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PKG\pkg.h">
+      <Filter>PKG</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\imgui_memory_editor.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\dds.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\dds_formats.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GlobalSettings.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\PinataApp.cpp" />
+    <ClCompile Include="src\Rendering\Renderer.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
