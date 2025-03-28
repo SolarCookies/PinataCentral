@@ -38,7 +38,7 @@ To set up *PinataCentral* locally, follow these steps:
    ```
 3. Run the setup script:
    ```sh
-   PinataCentral\scripts\Setup-ExampleProject.bat
+   PinataCentral\scripts\Setup-PinataCentral.bat
    ```
 
 ## Usage
