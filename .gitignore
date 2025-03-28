@@ -11,3 +11,6 @@ bin-int/
 
 # Exclude
 !vendor/bin
+*.filters
+*.vcxproj
+*.pkg

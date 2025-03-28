@@ -8,6 +8,7 @@
 #include "../imgui_memory_editor.h"
 #include <vulkan/vulkan.h>
 #include "../../Utils/dds.hpp"
+#include <filesystem>
 #include "omp.h"
 
 #include <random>
@@ -247,7 +248,7 @@ public:
 											}
 
 											//replace chunk
-											pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath);
+											pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true);
 										}
 										if (chunk->HasVGPU)
 										{
@@ -287,7 +288,7 @@ public:
 												}
 
 												//replace chunk
-												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath);
+												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true);
 											}
 										}
 										if (chunk->Type == FileType::DDS)
@@ -412,13 +413,8 @@ public:
 
 							//ImGui::ImageButton((ImTextureID)0, ImVec2(50, 50));
 							if (ImGui::ImageButton(m_Unknown_Thumbnail.GetDescriptorSet(), ImVec2(50, 50))) {
-								CurrentPKG = FileNames[i];
-								std::cout << "Selected: " << CurrentPKG << std::endl;
-								//read pkg
-								pkg = pkg::ReadPKG(files[i]);
-								std::cout << "Version: " << pkg.Version << std::endl;
-								std::cout << "Big Endian: " << pkg.IsBigEndian << std::endl;
-								std::cout << "CAFF Count: " << pkg.CAFFCount << std::endl;
+								ImGui::OpenPopup("pkgpopup");
+								
 							}
 							
 							ImGui::SameLine();
@@ -426,14 +422,30 @@ public:
 							ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (50 - ImGui::GetTextLineHeight()) / 2);
 							if(ImGui::Button(FileNames[i].c_str()))
 							{
-								CurrentPKG = FileNames[i];
-								std::cout << "Selected: " << CurrentPKG << std::endl;
+								ImGui::OpenPopup("pkgpopup");
+							}
+							if (ImGui::BeginPopup("pkgpopup")) {
+								if (ImGui::Button("Open")) {
+									CurrentPKG = FileNames[i];
+									std::cout << "Selected: " << CurrentPKG << std::endl;
+									//read pkg
+									pkg = pkg::ReadPKG(files[i]);
+									std::cout << "Version: " << pkg.Version << std::endl;
+									std::cout << "Big Endian: " << pkg.IsBigEndian << std::endl;
+									std::cout << "CAFF Count: " << pkg.CAFFCount << std::endl;
+								}
+								ImGui::SameLine();
+								if (std::filesystem::exists("Backups\\PackageBundles\\" + files[i].substr(pkg.path.find_last_of("\\") + 1)))
+								{
+									if (ImGui::Button("Restore")) {
+										std::filesystem::remove(files[i]);
+										std::filesystem::copy("Backups\\PackageBundles\\" + files[i].substr(pkg.path.find_last_of("\\") + 1), files[i]);
+										std::cout << "Restored: " << files[i] << std::endl;
+										ImGui::CloseCurrentPopup();
+									}
+								}
 
-								//read pkg
-								pkg = pkg::ReadPKG(files[i]);
-								std::cout << "Version: " << pkg.Version << std::endl;
-								std::cout << "Big Endian: " << pkg.IsBigEndian << std::endl;
-								std::cout << "CAFF Count: " << pkg.CAFFCount << std::endl;
+								ImGui::EndPopup();
 							}
 
 							ImGui::PopID();

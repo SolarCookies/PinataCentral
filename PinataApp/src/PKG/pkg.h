@@ -5,6 +5,7 @@
 #include "../Utils/ZLibHelpers.h"
 #include "../Utils/OpenFileDialog.h"
 #include <iostream>
+#include <filesystem>
 
 #include "Walnut/Timer.h"
 
@@ -725,7 +726,7 @@ namespace pkg {
 	}
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
-	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath) {
+	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath, bool OveridePKG) {
 
 		//Open Patch File and read data into BYTES
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
@@ -831,20 +832,59 @@ namespace pkg {
 					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
 
 					std::cout << "Writing new PKG file..." << std::endl;
-					std::cout << "New CAFF Size: " << NewCAFF.size() << std::endl;
-					std::cout << "New PKG Size: " << NewPKG.size() << std::endl;
 					
-					//Write new PKG to file
-					std::ofstream newpkgfile(NewPKGExportPath + "\\1_Patched.pkg", std::ios::binary);
-					if (!newpkgfile.is_open()) {
-						std::cout << "Failed to open new PKG file: " << NewPKGExportPath + "\\1_Patched.pkg" << std::endl;
-						std::cout << "Creating new PKG file..." << std::endl;
+					file.close();
+
+					if (OveridePKG) {
+						//check to see if a backup of the original PKG exists at /backup/.pkg
+
+						std::string BackupPath = "Backups\\PackageBundles\\" + pkg.path.substr(pkg.path.find_last_of("\\") + 1);
+						std::filesystem::create_directories("Backups\\PackageBundles\\");
+						std::filesystem::path BACKUPPATH = BackupPath;
+						std::filesystem::path PKGPATH = pkg.path;
+
+
+						//copy file to backup if it doesn't exist
+						if (!std::filesystem::exists(BACKUPPATH)) {
+							std::cout << "Creating backup of original PKG file at: " << BACKUPPATH << std::endl;
+							std::filesystem::copy_file(PKGPATH, BACKUPPATH);
+							return;
+						}else{
+							std::cout << "Backup of original PKG file already exists at: " << BACKUPPATH << std::endl;
+							std::cout << "Skiping backup..." << std::endl;
+						}
+
+						//replace original PKG with new PKG
+						std::filesystem::remove(PKGPATH);
+						std::ofstream newpkgfile(pkg.path, std::ios::binary);
+						if (!newpkgfile.is_open()) {
+							std::cout << "Failed to open new PKG file: " << pkg.path << std::endl;
+						}
+						else {
+							newpkgfile.write((char*)NewPKG.data(), NewPKG.size());
+							newpkgfile.close();
+							std::cout << "Patched PKG File" << std::endl;
+							return;
+						}
+
+
 					}
 					else {
-						newpkgfile.write((char*)NewPKG.data(), NewPKG.size());
-						newpkgfile.close();
-						std::cout << "New PKG file written!" << std::endl;
+
+						//Write new PKG to file
+						std::string NewPKGExportPath = NewPKGExportPath + "\\Patched_" + pkg.path.substr(pkg.path.find_last_of("\\") + 1);
+						std::ofstream newpkgfile(NewPKGExportPath, std::ios::binary);
+						if (!newpkgfile.is_open()) {
+							std::cout << "Failed to open new PKG file: " << NewPKGExportPath + "\\1_Patched.pkg" << std::endl;
+							std::cout << "Creating new PKG file..." << std::endl;
+						}
+						else {
+							newpkgfile.write((char*)NewPKG.data(), NewPKG.size());
+							newpkgfile.close();
+							std::cout << "New PKG file written!" << std::endl;
+						}
 					}
+					
 
 				}
 			}
