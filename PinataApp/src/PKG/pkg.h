@@ -848,7 +848,6 @@ namespace pkg {
 						if (!std::filesystem::exists(BACKUPPATH)) {
 							std::cout << "Creating backup of original PKG file at: " << BACKUPPATH << std::endl;
 							std::filesystem::copy_file(PKGPATH, BACKUPPATH);
-							return;
 						}else{
 							std::cout << "Backup of original PKG file already exists at: " << BACKUPPATH << std::endl;
 							std::cout << "Skiping backup..." << std::endl;
