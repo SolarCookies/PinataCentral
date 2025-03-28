@@ -4,13 +4,13 @@ bin/
 bin-int/
 
 # Files
-!*.vcxproj
-!*.vcxproj.user
-!*.vcxproj.filters
-!*.sln
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.sln
 
 # Exclude
 !vendor/bin
-*.filters
-*.vcxproj
 *.pkg
+*.dds
+PinataApp/temp.PNG
