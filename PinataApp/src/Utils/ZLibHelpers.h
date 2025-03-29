@@ -5,6 +5,8 @@
 #include "zlib.h"
 #include <iostream>
 
+#include "Log.hpp"
+
 #define BYTE unsigned char
 #define BYTES std::vector<BYTE>
 
@@ -27,7 +29,7 @@ namespace Zlib {
 
 		while (Stream.avail_in != 0) {
 			if (deflate(&Stream, Z_NO_FLUSH) != Z_OK) {
-				std::cout << "Error initializing Compression!";
+				Log("Error initializing Zlib Compression!", EType::Error);
 				return Result;
 			}
 			if (Stream.avail_out == 0) {
@@ -48,7 +50,7 @@ namespace Zlib {
 		}
 
 		if (Deflate_Res != Z_STREAM_END) {
-			std::cout << "Compression Error!";
+			Log("Compression Error!", EType::Error);
 			return Result;
 		}
 
@@ -64,7 +66,7 @@ namespace Zlib {
             return data;
         }
 		if (data.size() > DecompressSize) {
-			std::cout << "Compressed Size is greater than Decompress Size.." << std::endl;
+			Log("Compressed Size is greater than Decompress Size..", EType::Error);
 			return {};
 		}
 
@@ -77,20 +79,20 @@ namespace Zlib {
         Stream.next_out = Result.data();
 
         if (inflateInit(&Stream) != Z_OK) {
-            std::cout << "Error initializing Decompression!";
+			Log("Error initializing Zlib Decompression!", EType::Error);
             return Result;
         }
 
         int Ret = inflate(&Stream, Z_FINISH);
         if (Ret != Z_STREAM_END) {
             inflateEnd(&Stream);
-            std::cout << "Decompression Error!" << std::endl;
-            std::cout << "Error Code: " << Ret << std::endl;
+			Log("Zlib Decompression Error!", EType::Error);
+			Log("Error Code: " + std::to_string(Ret), EType::Error);
             if (Stream.msg != nullptr) {
-                std::cout << "Error Message: " << Stream.msg << std::endl;
+				Log("Error Message: " + std::string((char*)Stream.msg), EType::Error);
             }
 			if (Ret == Z_BUF_ERROR) {
-				std::cout << "Buffer Error: Not enough room in the output buffer!" << std::endl;
+				Log("Buffer Error: Not enough room in the output buffer!", EType::Error);
 			}
 
             return Result;
