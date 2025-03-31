@@ -358,7 +358,7 @@ namespace pkg {
 			VREF.VGPU_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			Log("VGPU Compressed Size: " + std::to_string(VREF.VGPU_Compressed_Size), EType::Normal);
 
-			offset = 81;
+			offset = 81; //? WTH why am i setting the offset to 81? if im not even using it? -_-
 
 			//VLUT_OFFSET + VLUT_Compressed_Size
 			VREF.VDAT_Offset = C.VLUT_Offset + C.VLUT_Compressed_Size;
@@ -553,6 +553,86 @@ namespace pkg {
 		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
 	}
 
+	//Returns full vref, vdat, vgpu streams patched with new data
+	inline static Streams UpdateStreams_WithDoubleOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+		Streams PatchedStreams;
+
+		std::ifstream filer(pkg.path, std::ios::binary);
+		if (!filer.is_open()) {
+			std::cout << "Failed to open file: " << pkg.path << std::endl;
+			return PatchedStreams;
+		}
+
+
+		Log("Reading VREF");
+		PatchedStreams.VREF = GetVREFBYTES(filer, Caff);
+
+		Log("Reading VDAT on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VDAT = GetVDATBYTES(Caff.CAFF_Info.Number - 1, pkg, filer);
+
+		Log("Reading VGPU on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VGPU = GetVGPUBYTES(Caff.CAFF_Info.Number - 1, pkg, filer);
+
+		filer.close();
+
+		Log("Creating New VDAT and VGPU with double Offset spacing", EType::Warning);
+
+		BYTES OGVGPU = PatchedStreams.VGPU;
+		BYTES OGVDAT = PatchedStreams.VDAT;
+
+		for (int i = 0; i < VREF.ChunkInfos.size(); i++) {
+			//resize VDAT to ChunkInfo.Offset * 2
+			PatchedStreams.VDAT.resize(VREF.ChunkInfos[i].VDAT_Offset * 2);
+
+			BYTES VDATChunk;
+
+			if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
+				//Patch VDAT with new VDAT
+				VDATChunk = VDAT;
+			}
+			else {
+				//Copy bytes from old VDAT to new VDAT
+				VDATChunk = Walnut::OpenFileDialog::CopyBytes(OGVDAT, VREF.ChunkInfos[i].VDAT_Offset, VREF.ChunkInfos[i].VDAT_Size);
+			}
+			
+			//Copy VDATChunk to new VDAT
+			PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + (VREF.ChunkInfos[i].VDAT_Offset * 2) , VDATChunk.begin(), VDATChunk.end());
+			//Patching VDAT
+
+
+			//ChunkInfo.OffsetLocations.VDAT_Offset_Location needs to be updated to new offset in the vref
+			Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, ChunkInfo.VDAT_Offset * 2, pkg.IsBigEndian);
+
+			
+
+			if (VREF.ChunkInfos[i].HasVGPU) {
+				//resize VGPU to ChunkInfo.Offset * 2 + ChunkInfo.Size
+				PatchedStreams.VGPU.resize(VREF.ChunkInfos[i].VGPU_Offset * 2);
+
+				BYTES VGPUChunk;
+				if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
+					//Patch VGPU with new VGPU
+					VGPUChunk = VGPU;
+				}
+				else {
+					//Copy bytes from old VGPU to new VGPU
+					VGPUChunk = Walnut::OpenFileDialog::CopyBytes(OGVGPU, VREF.ChunkInfos[i].VGPU_Offset, VREF.ChunkInfos[i].VGPU_Size);
+				}
+				//Copy VGPUChunk to new VGPU
+				PatchedStreams.VGPU.insert(PatchedStreams.VGPU.begin() + (VREF.ChunkInfos[i].VGPU_Offset * 2), VGPUChunk.begin(), VGPUChunk.end());
+				//Patching VGPU
+				//ChunkInfo.OffsetLocations.VGPU_Offset_Location needs to be updated to new offset in the vref
+				Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VGPU_Offset_Location, ChunkInfo.VGPU_Offset * 2, pkg.IsBigEndian);
+			}
+			
+		}
+
+		//Technically we now have the new VDAT and VGPU with double offset spacing and the vref has been updated with the new offsets
+
+
+		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+	}
+
 	//Returns full caff patched with new data 
 	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian, std::string ExportPath) {
 
@@ -599,9 +679,6 @@ namespace pkg {
 		Log("Setting VGPU Compressed Size at offset 62: " + std::to_string(VGPU_Compressed.size()), EType::Normal);
 		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 62, VGPU_Compressed.size(), BigEndian);
 
-		//set new VDAT and VGPU offsets
-		//Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 81, Caff.VLUT_Offset + Caff.VLUT_Compressed_Size, BigEndian);
-		//Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 96, Caff.VLUT_Offset + Caff.VLUT_Compressed_Size + VDAT_Compressed.size(), BigEndian);
 
 		Log("Old VREF Size: " + std::to_string(NewStreams.VREF.size()) + " New VREF Size: " + std::to_string(ModifiedVRef.size()), EType::Normal);
 
@@ -626,6 +703,21 @@ namespace pkg {
 
 		//Set VREF Compressed Size at offset 96 of CAFFHeader
 		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 96, VREF_Compressed.size(), BigEndian);
+
+		//Calculate new CAFF Checksum
+
+		//0 out old checksum
+		for (int i = 0x18; i < 0x1C; i++)
+		{
+			CAFFHeader[i] = 0;
+		}
+
+		//Calculate new checksum using MOJOBOJO's algorithm
+		uint32_t NewChecksum = Zlib::CAFF_checksum(CAFFHeader);
+
+		//Set new checksum at offset 24
+		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 0x18, NewChecksum, BigEndian);
+
 
 		//construct new CAFF
 		NewCAFF = CAFFHeader;
