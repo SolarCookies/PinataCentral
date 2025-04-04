@@ -506,7 +506,7 @@ namespace pkg {
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
-	inline static Streams UpdateStreams(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+	inline static Streams UpdateStreams(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU, bool DDS = false) {
 		Streams PatchedStreams;
 
 		std::ifstream file(pkg.path, std::ios::binary);
@@ -529,6 +529,7 @@ namespace pkg {
 
 		Log("Patching VDAT at: " + std::to_string(ChunkInfo.VDAT_Offset) + " with size: " + std::to_string(ChunkInfo.VDAT_Size), EType::Normal);
 
+		
 		//Patching VDAT
 		for (int i = 0; i < VDAT.size(); i++) {
 			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
@@ -537,6 +538,13 @@ namespace pkg {
 		
 		if (ChunkInfo.HasVGPU){
 			Log("Patching VGPU at: " + std::to_string(ChunkInfo.VGPU_Offset) + " with size: " + std::to_string(ChunkInfo.VGPU_Size), EType::Normal);
+
+			//Append bytes at the beginning of the VGPU with ".dds" if DDS is true
+			if (DDS) {
+				VGPU.insert(VGPU.begin(), { 0x2E, 0x64, 0x64, 0x64 });
+				//resize VGPU to ChunkInfo.Size
+				PatchedStreams.VGPU.resize(ChunkInfo.VGPU_Size);
+			}
 
 			//Patching VGPU
 			for (int i = 0; i < VGPU.size(); i++) {
@@ -633,8 +641,137 @@ namespace pkg {
 		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
 	}
 
+	//Returns full vref, vdat, vgpu streams patched with new data
+	inline static Streams UpdateStreams_WithOneOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+		Streams PatchedStreams;
+
+		std::ifstream filer(pkg.path, std::ios::binary);
+		if (!filer.is_open()) {
+			std::cout << "Failed to open file: " << pkg.path << std::endl;
+			return PatchedStreams;
+		}
+
+
+		Log("Reading VREF");
+		PatchedStreams.VREF = GetVREFBYTES(filer, Caff);
+
+		Log("Reading VDAT on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VDAT = GetVDATBYTES(Caff.CAFF_Info.Number - 1, pkg, filer);
+
+		Log("Reading VGPU on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VGPU = GetVGPUBYTES(Caff.CAFF_Info.Number - 1, pkg, filer);
+
+		filer.close();
+
+		Log("Creating New VDAT and VGPU with new Offset spacing", EType::Warning);
+
+		BYTES OGVGPU = PatchedStreams.VGPU;
+		BYTES OGVDAT = PatchedStreams.VDAT;
+
+		for (int i = 0; i < VREF.ChunkInfos.size(); i++) {
+
+			BYTES VDATChunk;
+
+			if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
+				//Patch VDAT with new VDAT
+				VDATChunk = VDAT;
+				uint32_t NewVDAT_Offset = PatchedStreams.VDAT.size();
+				PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + NewVDAT_Offset, VDATChunk.begin(), VDATChunk.end());
+				Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVDAT_Offset, pkg.IsBigEndian);
+			}
+			else {
+				//Copy bytes from old VDAT to new VDAT
+				VDATChunk = Walnut::OpenFileDialog::CopyBytes(OGVDAT, VREF.ChunkInfos[i].VDAT_Offset, VREF.ChunkInfos[i].VDAT_Size);
+				uint32_t NewVDAT_Offset = PatchedStreams.VDAT.size();
+				PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + NewVDAT_Offset, VDATChunk.begin(), VDATChunk.end());
+				Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVDAT_Offset, pkg.IsBigEndian);
+			}
+
+
+			if (VREF.ChunkInfos[i].HasVGPU) {
+
+				BYTES VGPUChunk;
+				if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
+					//Patch VGPU with new VGPU
+					VGPUChunk = VGPU;
+					uint32_t NewVGPU_Offset = PatchedStreams.VGPU.size();
+					PatchedStreams.VGPU.insert(PatchedStreams.VGPU.begin() + NewVGPU_Offset, VGPUChunk.begin(), VGPUChunk.end());
+					Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
+				}
+				else {
+					//Copy bytes from old VGPU to new VGPU
+					VGPUChunk = Walnut::OpenFileDialog::CopyBytes(OGVGPU, VREF.ChunkInfos[i].VGPU_Offset, VREF.ChunkInfos[i].VGPU_Size);
+					uint32_t NewVGPU_Offset = PatchedStreams.VGPU.size();
+					PatchedStreams.VGPU.insert(PatchedStreams.VGPU.begin() + NewVGPU_Offset, VGPUChunk.begin(), VGPUChunk.end());
+					Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
+				}
+			}
+
+		}
+
+
+		return PatchedStreams; 
+	}
+
+	//Returns full vref, vdat, vgpu streams patched with new data
+	inline static Streams UpdateStreams_AppendEnd(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+		Streams PatchedStreams;
+
+		std::ifstream file(pkg.path, std::ios::binary);
+		if (!file.is_open()) {
+			std::cout << "Failed to open file: " << pkg.path << std::endl;
+			return PatchedStreams;
+		}
+
+
+		Log("Reading VREF");
+		PatchedStreams.VREF = GetVREFBYTES(file, Caff);
+
+		Log("Reading VDAT on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VDAT = GetVDATBYTES(Caff.CAFF_Info.Number - 1, pkg, file);
+
+		Log("Reading VGPU on CAFF: " + std::to_string(Caff.CAFF_Info.Number - 1), EType::Normal);
+		PatchedStreams.VGPU = GetVGPUBYTES(Caff.CAFF_Info.Number - 1, pkg, file);
+
+		file.close();
+
+		Log("Patching VDAT at: " + std::to_string(ChunkInfo.VDAT_Offset) + " with size: " + std::to_string(ChunkInfo.VDAT_Size), EType::Normal);
+
+
+		//Patching VDAT
+		for (int i = 0; i < VDAT.size(); i++) {
+			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
+		}
+
+
+		if (ChunkInfo.HasVGPU) {
+			Log("Patching VGPU at: " + std::to_string(ChunkInfo.VGPU_Offset) + " with size: " + std::to_string(ChunkInfo.VGPU_Size), EType::Normal);
+
+			
+			//Patching VGPU
+			//for (int i = 0; i < VGPU.size(); i++) {
+			//	PatchedStreams.VGPU[ChunkInfo.VGPU_Offset + i] = VGPU[i];
+			//}
+			
+			//resize VGPU to have a small buffer at the end
+			PatchedStreams.VGPU.resize(PatchedStreams.VGPU.size() + 0x10);
+			uint32_t NewVGPU_Offset = PatchedStreams.VGPU.size();
+			PatchedStreams.VGPU.insert(PatchedStreams.VGPU.begin() + NewVGPU_Offset, VGPU.begin(), VGPU.end());
+			//Update VREF with new VGPU offset
+			Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, ChunkInfo.OffsetLocations.VGPU_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
+
+
+			Log("Patched VGPU", EType::Normal);
+		}
+
+		Log("Patched Streams..", EType::Normal);
+
+
+		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+	}
+
 	//Returns full caff patched with new data 
-	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian, std::string ExportPath) {
+	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian) {
 
 		BYTES NewCAFF;
 
@@ -844,7 +981,7 @@ namespace pkg {
 	}
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
-	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath, bool OveridePKG) {
+	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath, bool OveridePKG, bool DDS = false) {
 
 		//Open Patch File and read data into BYTES
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
@@ -900,7 +1037,7 @@ namespace pkg {
 							}
 							else {
 								Log("Patching Data Stream", EType::Normal);
-								NewStreams = UpdateStreams(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], PatchFileData, OGVGPUChunk);
+								NewStreams = UpdateStreams_AppendEnd(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], PatchFileData, OGVGPUChunk);
 							}
 						}
 						else {
@@ -911,29 +1048,15 @@ namespace pkg {
 						}
 						break;
 					case ChunkType::VGPU:
-						if (OGVGPUChunk.size() == PatchFileData.size()) {
-							if (OGVGPUChunk == PatchFileData) {
-								Log("Chunk is the same!, Aborting...", EType::Error);
-								return;
-							}
-							else {
-								Log("Patching GPU Stream", EType::Normal);
-								NewStreams = UpdateStreams(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], OGVDATChunk, PatchFileData);
-							}
-						}
-						else {
-							Log("Chunk is different size!, Aborting...", EType::Error);
-							Log("OGVGPUChunk Size: " + std::to_string(OGVGPUChunk.size()), EType::Error);
-							Log("PatchFileData Size: " + std::to_string(PatchFileData.size()), EType::Error);
-							return;
-						}
+						Log("Patching GPU Stream", EType::Normal);
+						NewStreams = UpdateStreams_AppendEnd(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], OGVDATChunk, PatchFileData);
 						break;
 					}
 
 					
 
 					//Update CAFF
-					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian, NewPKGExportPath);
+					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
 
 					//Update PKG with new CAFF
 					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
@@ -990,6 +1113,115 @@ namespace pkg {
 						}
 					}
 					
+
+				}
+			}
+		}
+
+
+	}
+
+	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
+	inline static void ReplaceChunkWithBytes(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, BYTES PatchFileData) {
+
+		std::ifstream file(pkg.path, std::ios::binary);
+
+		//For each vref in the pkg
+		for (int vref_i = 0; vref_i < pkg.VREFs.size(); vref_i++) {
+			//For each chunk in the vref
+			for (int chunk_i = 0; chunk_i < pkg.VREFs[vref_i].ChunkInfos.size(); chunk_i++) {
+
+				ChunkInfo* IndexedChunk = &pkg.VREFs[vref_i].ChunkInfos[chunk_i];
+				if (IndexedChunk->ChunkName == ChunkName) {
+
+					Log("Working on VREF: " + std::to_string(vref_i) + " Out of: " + std::to_string(pkg.VREFs.size()), EType::Normal);
+					Log("Working on Chunk: " + std::to_string(chunk_i) + " Out of: " + std::to_string(pkg.VREFs[vref_i].ChunkInfos.size()), EType::Normal);
+
+					BYTES OGVGPUChunk;
+					if (IndexedChunk->HasVGPU) {
+						OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, file);
+					}
+
+
+					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
+
+
+					Streams NewStreams;
+
+					//Check if the chunk is the same as the patch file and if the chunk is the same size
+					switch (Type) {
+					case ChunkType::VDAT:
+						if (OGVDATChunk.size() == PatchFileData.size()) {
+							if (OGVDATChunk == PatchFileData) {
+								Log("Chunk is the same!, Aborting...", EType::Error);
+								return;
+							}
+							else {
+								Log("Patching Data Stream", EType::Normal);
+								NewStreams = UpdateStreams_AppendEnd(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], PatchFileData, OGVGPUChunk);
+							}
+						}
+						else {
+							Log("Chunk is different size!, Aborting...", EType::Error);
+							Log("OGVDATChunk Size: " + std::to_string(OGVDATChunk.size()), EType::Error);
+							Log("PatchFileData Size: " + std::to_string(PatchFileData.size()), EType::Error);
+							return;
+						}
+						break;
+					case ChunkType::VGPU:
+						Log("Patching GPU Stream", EType::Normal);
+						NewStreams = UpdateStreams_AppendEnd(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], OGVDATChunk, PatchFileData);
+						break;
+					}
+
+
+
+					//Update CAFF
+					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
+
+					//Update PKG with new CAFF
+					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
+
+					Log("Writing new PKG file...", EType::Normal);
+
+					file.close();
+
+					
+					//check to see if a backup of the original PKG exists at /backup/.pkg
+
+					std::string BackupPath = "Backups\\PackageBundles\\" + pkg.path.substr(pkg.path.find_last_of("\\") + 1);
+					std::filesystem::create_directories("Backups\\PackageBundles\\");
+					std::filesystem::path BACKUPPATH = BackupPath;
+					std::filesystem::path PKGPATH = pkg.path;
+
+
+					//copy file to backup if it doesn't exist
+					if (!std::filesystem::exists(BACKUPPATH)) {
+						Log("Creating backup of original PKG file at: " + BackupPath, EType::Normal);
+						std::filesystem::copy_file(PKGPATH, BACKUPPATH);
+					}
+					else {
+						Log("Backup of original PKG file already exists at: " + BackupPath, EType::Normal);
+						Log("Skiping backup...", EType::Normal);
+					}
+
+					//replace original PKG with new PKG
+					std::filesystem::remove(PKGPATH);
+					std::ofstream newpkgfile(pkg.path, std::ios::binary);
+					if (!newpkgfile.is_open()) {
+						Log("Failed to open new PKG file: " + pkg.path, EType::Error);
+					}
+					else {
+						newpkgfile.write((char*)NewPKG.data(), NewPKG.size());
+						newpkgfile.close();
+						Log("Patched PKG File", EType::GREEN);
+						return;
+					}
+
+
+					
+					
+
 
 				}
 			}
