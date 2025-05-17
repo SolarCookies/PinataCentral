@@ -2,21 +2,21 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
-#include "../Utils/ZLibHelpers.h"
-#include "../Utils/OpenFileDialog.h"
 #include <iostream>
 #include <filesystem>
-
-#include "Walnut/Timer.h"
-
 #include <omp.h>
 
-//FileTypeEnum
+#include "../Utils/ZLibHelpers.h"
+#include "../Utils/OpenFileDialog.h"
+#include "Walnut/Timer.h"
+
+
 enum class FileType
 {
 	Unknown,
 	DDS,
-	RawImage
+	RawImage,
+	XUI_Scene
 };
 
 enum class ChunkType
@@ -82,7 +82,6 @@ struct VREF {
 	uint32_t VDAT_Compressed_Size = 0;
 	uint32_t VDAT_Uncompressed_Size = 0;
 	std::vector<ChunkInfo> ChunkInfos;
-
 };
 
 struct PKG {
@@ -102,16 +101,10 @@ struct Streams {
 };
 
 //macro that returns nearest multiple of s from x (Greater then or equal too) | r =(((x - (x % s )) + s) - x) | Maybe ((4014080 / 2048) + 1) * 2048?
-//#define NEAREST_MULTIPLE(x,s) (((x - (x % s )) + s) - x);
-//#define NEAREST_MULTIPLE(x,s) (((x / s) + 1) * 2048); //get next multiple of 2048
 #define NEAREST_MULTIPLE(x,s) (x * 2); //Doubles the offset (technically a multiple of 2 but large)
-//#define NEAREST_MULTIPLE(x,s) (x);
-
 
 namespace pkg {
-
 	inline static BYTES GetVREFBYTES(std::ifstream& file, CAFF C) {
-
 		//Save current position
 		uint32_t CurrentPosition = file.tellg();
 		//Goto vref offset
@@ -123,7 +116,6 @@ namespace pkg {
 		Walnut::OpenFileDialog::SeekBeg(file, CurrentPosition);
 
 		return Zlib::DecompressData(COMPRESSEDVREF, C.VREF_Uncompressed_Size);
-
 	}
 
 	inline static BYTES GetVDATBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
@@ -144,7 +136,7 @@ namespace pkg {
 
 	FileType GetFileType(std::string ChunkName, BYTES& VDAT, BYTES& VGPU)
 	{
-		//if the first 4 bytes are "2E 64 64 64" then return dds
+		//if the first 4 bytes are "2E 64 64 64" then return DDS
 		if (VDAT.size() > 25)
 		{
 			if (VDAT[25] == 0x60 || VDAT[25] == 0x10 || VDAT[25] == 0x30 || VDAT[25] == 0xB0)
@@ -154,6 +146,11 @@ namespace pkg {
 			if (VDAT[26] == 0x40)//26 is TIP Raw
 			{
 				return FileType::RawImage;
+			}
+			//First 4 bytes of VDAT are "XUIZ" then return XUI Scene ".xzp"
+			if (VDAT[0] == 0x58 && VDAT[1] == 0x55 && VDAT[2] == 0x49 && VDAT[3] == 0x5A)
+			{
+				return FileType::XUI_Scene;
 			}
 		}
 		return FileType::Unknown;
@@ -246,7 +243,6 @@ namespace pkg {
 
 		//Read CAFF Headers
 		for (CAFF_Info C : pkg.CAFF_Infos) {
-
 			Log("Reading CAFF: " + std::to_string(C.Number), EType::BLUE);
 			//Seek offset
 			Walnut::OpenFileDialog::SeekBeg(file, C.Offset);
@@ -260,7 +256,7 @@ namespace pkg {
 
 			Log("CAFF Version: " + CAFF_Version, EType::Normal);
 
-			//forword 3 bytes of null data
+			//forward 3 bytes of null data
 			Walnut::OpenFileDialog::SeekCur(file, 3);
 
 			//VREF Offset (4 bytes)
@@ -322,7 +318,6 @@ namespace pkg {
 
 		//Read VREFs
 		for (CAFF C : pkg.CAFFs) {
-
 			Log("Reading VREF: " + std::to_string(C.CAFF_Info.Number), EType::BLUE);
 
 			VREF VREF;
@@ -341,7 +336,6 @@ namespace pkg {
 			VREF.VDAT_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			Log("VDAT Compressed Size: " + std::to_string(VREF.VDAT_Compressed_Size), EType::Normal);
 
-
 			offset += 20;
 
 			bool VREFType = VREFTypeCheck(VREF_Uncompressed);
@@ -358,7 +352,7 @@ namespace pkg {
 			VREF.VGPU_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			Log("VGPU Compressed Size: " + std::to_string(VREF.VGPU_Compressed_Size), EType::Normal);
 
-			offset = 81; //? WTH why am i setting the offset to 81? if im not even using it? -_-
+			offset = 81; //? WTH why am I setting the offset to 81? if I'm not even using it? -_-
 
 			//VLUT_OFFSET + VLUT_Compressed_Size
 			VREF.VDAT_Offset = C.VLUT_Offset + C.VLUT_Compressed_Size;
@@ -371,8 +365,6 @@ namespace pkg {
 			Log("Reading Chunk Info...", EType::BLUE);
 			//for each chunk
 			for (int i = 0; i < (C.ChunkCount - 1); i++) {
-
-
 				uint32_t ChunkNameoffset;
 				uint32_t NameSize;
 
@@ -386,7 +378,6 @@ namespace pkg {
 					VREF.ChunkNames.push_back(Zlib::ConvertBytesToString(ChunkName));
 
 					continue;
-
 				}
 
 				ChunkNameoffset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
@@ -400,7 +391,6 @@ namespace pkg {
 				offset += 4;
 
 				VREF.ChunkNames.push_back(Zlib::ConvertBytesToString(ChunkName));
-
 			}
 
 			offset = 77;
@@ -408,9 +398,8 @@ namespace pkg {
 			//NameBlockSize (4 bytes)
 			uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 
-			//Begining of InfoBlock
+			//Beginning of InfoBlock
 			offset = (NameBlockSize + 81 + (C.ChunkCount * 4)) + 4;
-
 
 			for (int i = 0; i < (C.ChunkCount - 1); i++) {
 				ChunkInfo chunkinfo;
@@ -461,10 +450,8 @@ namespace pkg {
 						VREF.ChunkInfos.push_back(chunkinfo);
 					}
 				}
-
 			}
 			Log("VREF Read", EType::GREEN);
-
 
 			pkg.VREFs.push_back(VREF);
 
@@ -477,8 +464,6 @@ namespace pkg {
 
 #pragma omp parallel for num_threads(omp_get_max_threads()/2)
 			for (int cc = 0; cc < pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos.size(); cc++) {
-
-
 				if (pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos[cc].ChunkName.find("2.42") != std::string::npos) {
 #pragma omp critical
 					{
@@ -490,12 +475,9 @@ namespace pkg {
 				}
 			}
 
-
 			//end timer
 			Log("Chunk Types Checked", EType::GREEN);
 			Log("Time took reading chunk types: " + std::to_string(Typestimer.ElapsedMillis()), EType::PURPLE);
-
-
 		}
 
 		file.close();
@@ -515,7 +497,6 @@ namespace pkg {
 			return PatchedStreams;
 		}
 
-		
 		Log("Reading VREF");
 		PatchedStreams.VREF = GetVREFBYTES(file, Caff);
 
@@ -529,14 +510,12 @@ namespace pkg {
 
 		Log("Patching VDAT at: " + std::to_string(ChunkInfo.VDAT_Offset) + " with size: " + std::to_string(ChunkInfo.VDAT_Size), EType::Normal);
 
-		
 		//Patching VDAT
 		for (int i = 0; i < VDAT.size(); i++) {
 			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
 		}
 
-		
-		if (ChunkInfo.HasVGPU){
+		if (ChunkInfo.HasVGPU) {
 			Log("Patching VGPU at: " + std::to_string(ChunkInfo.VGPU_Offset) + " with size: " + std::to_string(ChunkInfo.VGPU_Size), EType::Normal);
 
 			//Append bytes at the beginning of the VGPU with ".dds" if DDS is true
@@ -551,14 +530,12 @@ namespace pkg {
 				PatchedStreams.VGPU[ChunkInfo.VGPU_Offset + i] = VGPU[i];
 			}
 
-			
 			Log("Patched VGPU", EType::Normal);
 		}
 
 		Log("Patched Streams..", EType::Normal);
 
-
-		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+		return PatchedStreams;
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
@@ -570,7 +547,6 @@ namespace pkg {
 			std::cout << "Failed to open file: " << pkg.path << std::endl;
 			return PatchedStreams;
 		}
-
 
 		Log("Reading VREF");
 		PatchedStreams.VREF = GetVREFBYTES(filer, Caff);
@@ -602,16 +578,13 @@ namespace pkg {
 				//Copy bytes from old VDAT to new VDAT
 				VDATChunk = Walnut::OpenFileDialog::CopyBytes(OGVDAT, VREF.ChunkInfos[i].VDAT_Offset, VREF.ChunkInfos[i].VDAT_Size);
 			}
-			
-			//Copy VDATChunk to new VDAT
-			PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + (VREF.ChunkInfos[i].VDAT_Offset * 2) , VDATChunk.begin(), VDATChunk.end());
-			//Patching VDAT
 
+			//Copy VDATChunk to new VDAT
+			PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + (VREF.ChunkInfos[i].VDAT_Offset * 2), VDATChunk.begin(), VDATChunk.end());
+			//Patching VDAT
 
 			//ChunkInfo.OffsetLocations.VDAT_Offset_Location needs to be updated to new offset in the vref
 			Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, ChunkInfo.VDAT_Offset * 2, pkg.IsBigEndian);
-
-			
 
 			if (VREF.ChunkInfos[i].HasVGPU) {
 				//resize VGPU to ChunkInfo.Offset * 2 + ChunkInfo.Size
@@ -632,13 +605,11 @@ namespace pkg {
 				//ChunkInfo.OffsetLocations.VGPU_Offset_Location needs to be updated to new offset in the vref
 				Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VGPU_Offset_Location, ChunkInfo.VGPU_Offset * 2, pkg.IsBigEndian);
 			}
-			
 		}
 
 		//Technically we now have the new VDAT and VGPU with double offset spacing and the vref has been updated with the new offsets
 
-
-		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+		return PatchedStreams;
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
@@ -650,7 +621,6 @@ namespace pkg {
 			std::cout << "Failed to open file: " << pkg.path << std::endl;
 			return PatchedStreams;
 		}
-
 
 		Log("Reading VREF");
 		PatchedStreams.VREF = GetVREFBYTES(filer, Caff);
@@ -669,7 +639,6 @@ namespace pkg {
 		BYTES OGVDAT = PatchedStreams.VDAT;
 
 		for (int i = 0; i < VREF.ChunkInfos.size(); i++) {
-
 			BYTES VDATChunk;
 
 			if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
@@ -687,9 +656,7 @@ namespace pkg {
 				Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVDAT_Offset, pkg.IsBigEndian);
 			}
 
-
 			if (VREF.ChunkInfos[i].HasVGPU) {
-
 				BYTES VGPUChunk;
 				if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
 					//Patch VGPU with new VGPU
@@ -706,11 +673,9 @@ namespace pkg {
 					Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, VREF.ChunkInfos[i].OffsetLocations.VDAT_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
 				}
 			}
-
 		}
 
-
-		return PatchedStreams; 
+		return PatchedStreams;
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
@@ -722,7 +687,6 @@ namespace pkg {
 			std::cout << "Failed to open file: " << pkg.path << std::endl;
 			return PatchedStreams;
 		}
-
 
 		Log("Reading VREF");
 		PatchedStreams.VREF = GetVREFBYTES(file, Caff);
@@ -737,22 +701,19 @@ namespace pkg {
 
 		Log("Patching VDAT at: " + std::to_string(ChunkInfo.VDAT_Offset) + " with size: " + std::to_string(ChunkInfo.VDAT_Size), EType::Normal);
 
-
 		//Patching VDAT
 		for (int i = 0; i < VDAT.size(); i++) {
 			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
 		}
 
-
 		if (ChunkInfo.HasVGPU) {
 			Log("Patching VGPU at: " + std::to_string(ChunkInfo.VGPU_Offset) + " with size: " + std::to_string(ChunkInfo.VGPU_Size), EType::Normal);
 
-			
 			//Patching VGPU
 			//for (int i = 0; i < VGPU.size(); i++) {
 			//	PatchedStreams.VGPU[ChunkInfo.VGPU_Offset + i] = VGPU[i];
 			//}
-			
+
 			//resize VGPU to have a small buffer at the end
 			PatchedStreams.VGPU.resize(PatchedStreams.VGPU.size() + 0x10);
 			uint32_t NewVGPU_Offset = PatchedStreams.VGPU.size();
@@ -760,19 +721,16 @@ namespace pkg {
 			//Update VREF with new VGPU offset
 			Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, ChunkInfo.OffsetLocations.VGPU_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
 
-
 			Log("Patched VGPU", EType::Normal);
 		}
 
 		Log("Patched Streams..", EType::Normal);
 
-
-		return PatchedStreams; // BP code:(https://blueprintue.com/blueprint/nzpxzrdk/)
+		return PatchedStreams;
 	}
 
-	//Returns full caff patched with new data 
+	//Returns full caff patched with new data
 	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian) {
-
 		BYTES NewCAFF;
 
 		std::ifstream file(pkg.path, std::ios::binary);
@@ -816,18 +774,15 @@ namespace pkg {
 		Log("Setting VGPU Compressed Size at offset 62: " + std::to_string(VGPU_Compressed.size()), EType::Normal);
 		Walnut::OpenFileDialog::SetIntAtOffset(ModifiedVRef, 62, VGPU_Compressed.size(), BigEndian);
 
-
 		Log("Old VREF Size: " + std::to_string(NewStreams.VREF.size()) + " New VREF Size: " + std::to_string(ModifiedVRef.size()), EType::Normal);
 
-		
 		//compress VREF
 		BYTES VREF_Compressed = Zlib::CompressData(ModifiedVRef);
-		
+
 		Log("Old VREF Compressed Size: " + std::to_string(Caff.VREF_Compressed_Size) + " New VREF Compressed Size: " + std::to_string(VREF_Compressed.size()), EType::Normal);
-		Log("VREF Compressed Size: " + std::to_string(VREF_Compressed.size()), EType::Normal);	
+		Log("VREF Compressed Size: " + std::to_string(VREF_Compressed.size()), EType::Normal);
 
 		BYTES VLUT_Uncompressed = Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size), Caff.VLUT_Uncompressed_Size);
-
 
 		BYTES VLUT_Compressed = Zlib::CompressData(VLUT_Uncompressed);
 
@@ -855,7 +810,6 @@ namespace pkg {
 		//Set new checksum at offset 24
 		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 0x18, NewChecksum, BigEndian);
 
-
 		//construct new CAFF
 		NewCAFF = CAFFHeader;
 		NewCAFF.insert(NewCAFF.end(), VREF_Compressed.begin(), VREF_Compressed.end());
@@ -863,12 +817,12 @@ namespace pkg {
 		NewCAFF.insert(NewCAFF.end(), VDAT_Compressed.begin(), VDAT_Compressed.end());
 		NewCAFF.insert(NewCAFF.end(), VGPU_Compressed.begin(), VGPU_Compressed.end());
 
-		return NewCAFF; // BP code:(https://blueprintue.com/blueprint/vv97_nrk/)
+		return NewCAFF;
 	}
 
 	//Returns full pkg patched with new data
 	inline static BYTES UpdatePKG(PKG pkg, BYTES NewCAFF, int CAFFNumber) {
-		//Open PKG 
+		//Open PKG
 		std::ifstream file(pkg.path, std::ios::binary);
 
 		BYTES PKG = Walnut::OpenFileDialog::Read_Bytes(file, 0, pkg.CAFF_Infos[CAFFNumber].Offset);
@@ -878,7 +832,6 @@ namespace pkg {
 
 		//For each CAFF Info
 		for (int i = 0; i < pkg.CAFF_Infos.size(); i++) {
-
 			Log("Working on CAFF Number: " + std::to_string(i) + " Out of: " + std::to_string(pkg.CAFF_Infos.size()), EType::Normal);
 
 			CAFF_Info NewCAFFInfo;
@@ -896,14 +849,13 @@ namespace pkg {
 				NewPKG.insert(NewPKG.end(), PKG.begin(), PKG.begin() + pkg.CAFF_Infos[0].Offset);
 			}
 
-			
 			if (CaffNumber - 1 == CAFFNumber) {
 				//Set New CAFF Infos
 
 				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
 				//std::cout << "Old CAFF Offset: " << CaffOffset << " New CAFF Offset: " << NextOffset << std::endl;
 
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset evenually
+				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
 
 				Log("Old CAFF Offset: " + std::to_string(CaffOffset) + " New CAFF Offset: " + std::to_string(NextOffset), EType::Normal);
 
@@ -924,10 +876,9 @@ namespace pkg {
 				NewCAFFInfos.push_back(NewCAFFInfo);
 			}
 			else {
-
 				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
-				
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset evenually
+
+				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
 
 				Log("Old CAFF Offset: " + std::to_string(CaffOffset) + " New CAFF Offset: " + std::to_string(NextOffset), EType::Normal);
 
@@ -952,12 +903,10 @@ namespace pkg {
 
 		//Set New PKG CAFF Infos
 		for (int i = 0; i < NewCAFFInfos.size(); i++) {
-			
 			//set CAFF unknown at offset ((Caff Number - 1) * 12) + 8
 			int UnknownOffset = ((NewCAFFInfos[i].Number - 1) * 12) + 8;
 			Log("Old Unknown: " + std::to_string(pkg.CAFF_Infos[i].Unknown) + " New Unknown: " + std::to_string(NewCAFFInfos[i].Unknown), EType::Normal);
 
-			
 			Log("Writing Unknown at offset: " + std::to_string(UnknownOffset), EType::Normal);
 			Walnut::OpenFileDialog::SetIntAtOffset(NewPKG, UnknownOffset, NewCAFFInfos[i].Unknown, pkg.IsBigEndian);
 
@@ -971,18 +920,16 @@ namespace pkg {
 			//set CAFF size at offset (((Caff Number - 1) * 12) + 8) + 8
 			int SizeOffset = ((NewCAFFInfos[i].Number - 1) * 12) + 8 + 8;
 			Log("Old Size: " + std::to_string(pkg.CAFF_Infos[i].Size) + " New Size: " + std::to_string(NewCAFFInfos[i].Size), EType::Normal);
-			
+
 			Log("Writing Size at offset: " + std::to_string(SizeOffset), EType::Normal);
 			Walnut::OpenFileDialog::SetIntAtOffset(NewPKG, SizeOffset, NewCAFFInfos[i].Size, pkg.IsBigEndian);
 		}
 
-
-		return { NewPKG }; // BP code:(https://blueprintue.com/blueprint/6dd8sfb8/
+		return { NewPKG };
 	}
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
 	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath, bool OveridePKG, bool DDS = false) {
-
 		//Open Patch File and read data into BYTES
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
 		if (!patchfile.is_open()) {
@@ -997,7 +944,6 @@ namespace pkg {
 		}
 		patchfile.close();
 
-
 		std::ifstream file(pkg.path, std::ios::binary);
 
 		//remove last byte of patch file data, Removes a null byte at the end of the file that is added by the while loop?
@@ -1009,10 +955,8 @@ namespace pkg {
 		for (int vref_i = 0; vref_i < pkg.VREFs.size(); vref_i++) {
 			//For each chunk in the vref
 			for (int chunk_i = 0; chunk_i < pkg.VREFs[vref_i].ChunkInfos.size(); chunk_i++) {
-				
 				ChunkInfo* IndexedChunk = &pkg.VREFs[vref_i].ChunkInfos[chunk_i];
 				if (IndexedChunk->ChunkName == ChunkName) {
-
 					Log("Working on VREF: " + std::to_string(vref_i) + " Out of: " + std::to_string(pkg.VREFs.size()), EType::Normal);
 					Log("Working on Chunk: " + std::to_string(chunk_i) + " Out of: " + std::to_string(pkg.VREFs[vref_i].ChunkInfos.size()), EType::Normal);
 
@@ -1021,9 +965,7 @@ namespace pkg {
 						OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, file);
 					}
 
-
 					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
-					
 
 					Streams NewStreams;
 
@@ -1053,8 +995,6 @@ namespace pkg {
 						break;
 					}
 
-					
-
 					//Update CAFF
 					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
 
@@ -1062,7 +1002,7 @@ namespace pkg {
 					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
 
 					Log("Writing new PKG file...", EType::Normal);
-					
+
 					file.close();
 
 					if (OveridePKG) {
@@ -1073,14 +1013,14 @@ namespace pkg {
 						std::filesystem::path BACKUPPATH = BackupPath;
 						std::filesystem::path PKGPATH = pkg.path;
 
-
 						//copy file to backup if it doesn't exist
 						if (!std::filesystem::exists(BACKUPPATH)) {
 							Log("Creating backup of original PKG file at: " + BackupPath, EType::Normal);
 							std::filesystem::copy_file(PKGPATH, BACKUPPATH);
-						}else{
+						}
+						else {
 							Log("Backup of original PKG file already exists at: " + BackupPath, EType::Normal);
-							Log("Skiping backup...", EType::Normal);
+							Log("Skipping backup...", EType::Normal);
 						}
 
 						//replace original PKG with new PKG
@@ -1095,11 +1035,8 @@ namespace pkg {
 							Log("Patched PKG File", EType::GREEN);
 							return;
 						}
-
-
 					}
 					else {
-
 						//Write new PKG to file
 						std::string NewPKGExportPath = NewPKGExportPath + "\\Patched_" + pkg.path.substr(pkg.path.find_last_of("\\") + 1);
 						std::ofstream newpkgfile(NewPKGExportPath, std::ios::binary);
@@ -1112,28 +1049,21 @@ namespace pkg {
 							Log("New PKG file written!", EType::GREEN);
 						}
 					}
-					
-
 				}
 			}
 		}
-
-
 	}
 
-	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
+	//Replaces a chunk in a PKG file
 	inline static void ReplaceChunkWithBytes(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, BYTES PatchFileData) {
-
 		std::ifstream file(pkg.path, std::ios::binary);
 
 		//For each vref in the pkg
 		for (int vref_i = 0; vref_i < pkg.VREFs.size(); vref_i++) {
 			//For each chunk in the vref
 			for (int chunk_i = 0; chunk_i < pkg.VREFs[vref_i].ChunkInfos.size(); chunk_i++) {
-
 				ChunkInfo* IndexedChunk = &pkg.VREFs[vref_i].ChunkInfos[chunk_i];
 				if (IndexedChunk->ChunkName == ChunkName) {
-
 					Log("Working on VREF: " + std::to_string(vref_i) + " Out of: " + std::to_string(pkg.VREFs.size()), EType::Normal);
 					Log("Working on Chunk: " + std::to_string(chunk_i) + " Out of: " + std::to_string(pkg.VREFs[vref_i].ChunkInfos.size()), EType::Normal);
 
@@ -1142,9 +1072,7 @@ namespace pkg {
 						OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, file);
 					}
 
-
 					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
-
 
 					Streams NewStreams;
 
@@ -1174,8 +1102,6 @@ namespace pkg {
 						break;
 					}
 
-
-
 					//Update CAFF
 					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
 
@@ -1186,14 +1112,12 @@ namespace pkg {
 
 					file.close();
 
-					
 					//check to see if a backup of the original PKG exists at /backup/.pkg
 
 					std::string BackupPath = "Backups\\PackageBundles\\" + pkg.path.substr(pkg.path.find_last_of("\\") + 1);
 					std::filesystem::create_directories("Backups\\PackageBundles\\");
 					std::filesystem::path BACKUPPATH = BackupPath;
 					std::filesystem::path PKGPATH = pkg.path;
-
 
 					//copy file to backup if it doesn't exist
 					if (!std::filesystem::exists(BACKUPPATH)) {
@@ -1202,7 +1126,7 @@ namespace pkg {
 					}
 					else {
 						Log("Backup of original PKG file already exists at: " + BackupPath, EType::Normal);
-						Log("Skiping backup...", EType::Normal);
+						Log("Skipping backup...", EType::Normal);
 					}
 
 					//replace original PKG with new PKG
@@ -1217,17 +1141,8 @@ namespace pkg {
 						Log("Patched PKG File", EType::GREEN);
 						return;
 					}
-
-
-					
-					
-
-
 				}
 			}
 		}
-
-
 	}
-
 }

@@ -10,6 +10,7 @@
 #include "../../Utils/dds.hpp"
 #include <filesystem>
 #include "omp.h"
+#include "../../UI/DataWindows/DataSettingsWindow.h"
 
 #include <random>
 
@@ -24,7 +25,6 @@ class FileBrowser
 {
 public:
 	FileBrowser() {
-
 		//load settings from settings.ini
 		if (Walnut::OpenFileDialog::FileExists(iniPath))
 		{
@@ -32,15 +32,14 @@ public:
 			mINI::INIStructure ini;
 			file.read(ini);
 			strcpy_s(Bundlepath, ini["Settings"]["Path"].c_str());
-
 		}
 		else {
-
 		}
-
 	};
 	~FileBrowser() {
 	};
+
+	vector<DataSettingsWindow*>* m_DataSettingsWindows_PTR;
 
 	std::string CurrentPKG = "";
 	PKG pkg;
@@ -71,7 +70,6 @@ public:
 
 	//Walnut::Image TestDDS;
 
-
 	bool ShowHexWindow = false;
 	bool FoundFiles = false;
 	BYTES HexData;
@@ -80,7 +78,7 @@ public:
 
 	Walnut::Image* GetAssetThumbnail(std::string ChunkName, bool isDDS)
 	{
-		if (ChunkName.find("2.53") != std::string::npos){
+		if (ChunkName.find("2.53") != std::string::npos) {
 			return &m_Requirement_Thumbnail;
 		}
 		if (ChunkName.find("2.19") != std::string::npos) {
@@ -93,7 +91,6 @@ public:
 			return &m_UnknownTexture_Thumbnail;
 		}
 
-
 		return &m_Unknown_Thumbnail;
 	}
 
@@ -101,10 +98,9 @@ public:
 		//File Browser Window
 		if (ImGui::Begin("File Browser"))
 		{
-
 			if (r == RenderMode::List)
 			{
-				if (Bundlepath != nullptr && Bundlepath[0] != '\0')
+				if (Bundlepath != nullptr || Bundlepath[0] != '\0' || Bundlepath != "")
 				{
 					ImGui::Text("Current Path: ");
 					ImGui::SameLine();
@@ -114,13 +110,12 @@ public:
 						CurrentCAFF = "";
 					}
 
-
 					if (CurrentPKG != "")
 					{
 						ImGui::SameLine();
 						ImGui::Text("/");
 						ImGui::SameLine();
-						if(ImGui::Button(CurrentPKG.c_str()))
+						if (ImGui::Button(CurrentPKG.c_str()))
 						{
 							CurrentCAFF = "";
 						}
@@ -130,7 +125,7 @@ public:
 							ImGui::SameLine();
 							ImGui::Text("/");
 							ImGui::SameLine();
-							if(ImGui::Button(CurrentCAFF.c_str()))
+							if (ImGui::Button(CurrentCAFF.c_str()))
 							{
 								CurrentAid = "";
 							}
@@ -172,7 +167,7 @@ public:
 									//center height
 									ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (50 - ImGui::GetTextLineHeight()) / 2);
 									//i.caff
-									//tooltip
+									//tool tip
 									if (ImGui::IsItemHovered())
 									{
 										ImGui::BeginTooltip();
@@ -204,12 +199,10 @@ public:
 										file.close();
 
 										ImGui::OpenPopup("popup");
-
 									}
 									if (ImGui::BeginPopup("popup")) {
 										CurrentAid = chunk->ChunkName;
 
-										
 										//add buttons to view vdat and vgpu
 										if (ImGui::Button("View VDAT")) {
 											std::ifstream file(pkg.path, std::ios::binary);
@@ -219,7 +212,6 @@ public:
 										}
 										ImGui::SameLine();
 										if (ImGui::Button("Export VDAT")) {
-											
 											std::ifstream file(pkg.path, std::ios::binary);
 											BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
 											bool saved = Walnut::OpenFileDialog::AskSaveFile(VDATData, chunk->ChunkName + ".vdat");
@@ -311,6 +303,27 @@ public:
 												ShowImageWindow = true;
 												file.close();
 											}
+											ImGui::SameLine();
+											if (ImGui::Button("Export DDS"))
+											{
+												std::ifstream file(pkg.path, std::ios::binary);
+												BYTES DDSData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												DDSData.erase(DDSData.begin(), DDSData.begin() + 4);
+												bool saved = Walnut::OpenFileDialog::AskSaveFile(DDSData, chunk->ChunkName + ".dds");
+												file.close();
+											}
+											ImGui::SameLine();
+											if (ImGui::Button("Replace DDS"))
+											{
+												//select Patch file of .vdat .vgpu .chunk .dds
+												std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("DDS Files\0*.dds\0\0");
+												//select NewPKGExportPath
+												std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
+												std::string PatchFileExt = PatchFilePath.substr(PatchFilePath.find_last_of(".") + 1);
+												ChunkType PatchFileType = ChunkType::VGPU;
+												//replace chunk
+												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true, true);
+											}
 										}
 										if (chunk->Type == FileType::RawImage) {
 											if (ImGui::Button("View Raw Image")) {
@@ -335,16 +348,13 @@ public:
 								}
 							}
 
-
 							ImGui::PopStyleVar();
 
 							ImGui::EndChild();
-
 						}
 
 						//No CAFF Selected
 						else {
-
 							//add scrollable area
 							ImGui::BeginChild("Scrolling");
 
@@ -362,7 +372,7 @@ public:
 								//center height
 								ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (50 - ImGui::GetTextLineHeight()) / 2);
 								//i.caff
-								//tooltip
+								//tool tip
 								if (ImGui::IsItemHovered())
 								{
 									ImGui::BeginTooltip();
@@ -371,9 +381,39 @@ public:
 									ImGui::Text("PKG Size: %d", pkg.CAFF_Infos[i].Size);
 									ImGui::EndTooltip();
 								}
+
 								if (ImGui::Button(std::string("CAFF " + std::to_string(i + 1)).c_str())) {
-									CurrentCAFF = "CAFF " + std::to_string(i + 1);
+									ImGui::OpenPopup("caffpopup");
 								}
+								if (ImGui::BeginPopup("caffpopup")) {
+									if (ImGui::Button("Open")) {
+										CurrentCAFF = "CAFF " + std::to_string(i + 1);
+									}
+									if (ImGui::Button("Export VREF")) {
+										std::ifstream file11(pkg.path, std::ios::binary);
+										BYTES VREFData = pkg::GetVREFBYTES(file11, pkg.CAFFs[i]);
+										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
+										file11.close();
+									}
+									ImGui::SameLine();
+									if (ImGui::Button("Export VDAT")) {
+										std::ifstream file11(pkg.path, std::ios::binary);
+										BYTES VREFData = pkg::GetVDATBYTES(i, pkg, file11);
+										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
+										file11.close();
+									}
+									ImGui::SameLine();
+									if (ImGui::Button("Export VGPU"))
+									{
+										std::ifstream file11(pkg.path, std::ios::binary);
+										BYTES VREFData = pkg::GetVGPUBYTES(i, pkg, file11);
+										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
+										file11.close();
+									}
+
+									ImGui::EndPopup();
+								}
+
 								ImGui::EndGroup();
 								ImGui::PopID();
 							}
@@ -382,12 +422,10 @@ public:
 
 							ImGui::EndChild();
 						}
-						
 					}
 
 					//No PKG selected
 					else {
-
 						//add scrollable area
 						ImGui::BeginChild("Scrolling");
 
@@ -414,13 +452,12 @@ public:
 							//ImGui::ImageButton((ImTextureID)0, ImVec2(50, 50));
 							if (ImGui::ImageButton(m_Unknown_Thumbnail.GetDescriptorSet(), ImVec2(50, 50))) {
 								ImGui::OpenPopup("pkgpopup");
-								
 							}
-							
+
 							ImGui::SameLine();
 							//center height
 							ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (50 - ImGui::GetTextLineHeight()) / 2);
-							if(ImGui::Button(FileNames[i].c_str()))
+							if (ImGui::Button(FileNames[i].c_str()))
 							{
 								ImGui::OpenPopup("pkgpopup");
 							}
@@ -450,17 +487,12 @@ public:
 
 							ImGui::PopID();
 							ImGui::EndGroup();
-
-
 						}
-
 
 						ImGui::PopStyleVar();
 
 						ImGui::EndChild();
 					}
-
-
 				}
 
 				// No PKG Directory selected
@@ -487,20 +519,15 @@ public:
 
 					ImGui::BeginChild("Scrolling");
 					ImGui::EndChild();
-				} 
-			
-			
+				}
 			}
-
-			
 		}
 		ImGui::End();
 
 		if (ShowHexWindow)
 		{
-			
 			static MemoryEditor hex_edit;
-			if (!hex_edit.DrawWindow("Hex Editor", HexData.data(), HexData.size(),CurrentAid.c_str()))
+			if (!hex_edit.DrawWindow("Hex Editor", HexData.data(), HexData.size(), CurrentAid.c_str()))
 			{
 				ShowHexWindow = false;
 			}
@@ -509,9 +536,8 @@ public:
 		if (ShowImageWindow) {
 			RenderImage("temp.PNG");
 		}
-
 	}
-	
+
 	void RenderImage(std::string path)
 	{
 		if (ShowRaw)
@@ -527,7 +553,5 @@ public:
 			ImGui::Image(img.GetDescriptorSet(), ImVec2(ImGui::GetWindowSize().y, ImGui::GetWindowSize().y));
 			ImGui::End();
 		}
-		
 	}
-
 };

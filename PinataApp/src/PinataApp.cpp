@@ -18,6 +18,9 @@
 #include "Rendering/Renderer.h"
 #include "Utils/Log.hpp"
 
+//Data Windows
+#include "UI/DataWindows/DataSettingsWindow.h"
+
 //working directory
 std::string workingDirectory = std::filesystem::current_path().string();
 
@@ -30,8 +33,6 @@ bool m_ShowSettingsWindow = false;
 //Path to .pkg bundles
 char path[256] = "C:/";
 
-
-
 class ExampleLayer : public Walnut::Layer
 {
 public:
@@ -39,8 +40,6 @@ public:
 	//This runs every frame and is used to render the UI
 	virtual void OnUIRender() override
 	{
-
-		
 		//get popup data from settings.ini
 		mINI::INIFile file(settingsPath);
 		mINI::INIStructure ini;
@@ -55,7 +54,7 @@ public:
 			if (HasProgressBar)
 			{
 				float Progress = std::stof(ini["Settings"]["Progress"]) / 100.0f;
-				//fullscreen next window
+				//full screen next window
 				ImGui::SetNextWindowPos(ImVec2(100, 100));
 				ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x - 200, ImGui::GetIO().DisplaySize.y - 200));
 				ImGui::SetNextWindowBgAlpha(0.5f);
@@ -65,7 +64,7 @@ public:
 				ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(PopupMessage.c_str()).x) / 2);
 				ImGui::Text(PopupMessage.c_str());
 				ImGui::ProgressBar(Progress);
-				
+
 				ImGui::End();
 			}
 			else
@@ -75,11 +74,10 @@ public:
 				ImGui::End();
 			}
 
-
 			//m_Renderer.RenderUI();
 			return;
 		}
-		
+
 		timer.Reset();
 
 		//Show settings window if enabled
@@ -101,9 +99,8 @@ public:
 					file.write(ini);
 				}
 			}
-			
+
 			ImGui::End();
-			
 		}
 
 		m_FileBrowser.RenderFileBrowser(RenderMode::List);
@@ -112,15 +109,13 @@ public:
 		{
 			ImGui::Text("Details");
 			ImGui::Text("FPS: %.2f", 1000.0f / m_lastRenderTime);
-			
 		}
 		ImGui::End();
 
 		//ImGui::SetNextWindowBgAlpha(0.0f);
-		
 
 		//Walnut::OpenFileDialog::DemoFileDialogWindow(); //Uncomment to show demo file dialog window to test functionality of OpenFileDialog.h
-		
+
 		if (timerUIUpdate.ElapsedMillis() > 100.0f)
 		{
 			m_lastRenderTime = timer.ElapsedMillis();
@@ -142,16 +137,21 @@ public:
 				if (Keys[i] == " ")
 					log += Logs[i] + "\n";
 				else
-				log += Logs[i] + " Type: " + Keys[i] + "\n";
+					log += Logs[i] + " Type: " + Keys[i] + "\n";
 			}
 			ImGui::SetClipboardText(log.c_str());
 		}
 		DrawLog();
 		ImGui::End();
 
+		for (DataSettingsWindow* window : m_DataSettingsWindows)
+		{
+			if (window != nullptr)
+				window->RenderParent();
+		}
 
 		//m_Renderer.RenderUI();
-		
+
 		/*
 		// Create an ImGui window for the viewport
 		ImGui::Begin("Viewport");
@@ -159,32 +159,25 @@ public:
 		m_Viewport.m_ViewportWidth = viewportSize.x;
 		m_Viewport.m_ViewportHeight = viewportSize.y;
 
-		// Get the offscreen image view
+		// Get the off-screen image view
 		//VkImageView offscreenImageView = m_Renderer.GetOffscreenImageView();
 
-		// Display the offscreen image in the ImGui window
+		// Display the off-screen image in the ImGui window
 		//ImGui::Image((void*)(intptr_t)m_Renderer.GetOffscreenImageView(), viewportSize);
 		ImGui::End();
 		*/
-
 	}
 
 	//This runs every frame and is used to render the 3d scene
 	virtual void OnRender() override
 	{
-		
-		
-		// Render the model to the offscreen framebuffer
+		// Render the model to the off-screen frame-buffer
 		//m_Renderer.Render(Walnut::Application::GetMainWindowData(), m_Viewport.m_ViewportWidth, m_Viewport.m_ViewportHeight);
-		//std::cout << "Rendered" << std::endl;
-		
 	}
 
 	//This runs on begin play and is used to initialize the renderer along with other things that need to be initialized before the app renders for the first time
 	virtual void OnAttach() override
 	{
-
-		
 		//m_Renderer.Init(Walnut::Application::GetMainWindowData());
 		//m_Viewport.run();
 	}
@@ -204,10 +197,10 @@ private:
 	//File Browser handles the displaying and user interaction with the .pkg files
 	FileBrowser m_FileBrowser;
 
+	vector<DataSettingsWindow*> m_DataSettingsWindows;
+
 	//Renderer handles the rendering of models (I followed a tutorial to get this working thats why the namespace is "cubed")
 	//cubed::Renderer m_Renderer;
-
-
 };
 
 //This is the entry point for the application
@@ -217,7 +210,6 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	spec.Name = "Pinata Central";
 	spec.CustomTitlebar = true;
 	spec.UseDockspace = true;
-	
 
 	//load settings from settings.ini
 	if (Walnut::OpenFileDialog::FileExists(settingsPath))
@@ -226,49 +218,46 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 		mINI::INIStructure ini;
 		file.read(ini);
 		strcpy_s(path, ini["Settings"]["Path"].c_str());
-		
 	}
 	else {
 		mINI::INIFile file(settingsPath);
 		mINI::INIStructure ini;
 		ini["Settings"]["Path"] = path;
 		file.generate(ini);
-		
 	}
-	
-	
+
 	Walnut::Application* app = new Walnut::Application(spec);
 	app->PushLayer<ExampleLayer>();
-	
+
 	app->SetMenubarCallback([app]()
-	{
-			
-		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem("Settings"))
+			if (ImGui::BeginMenu("File"))
 			{
-				m_ShowSettingsWindow = !m_ShowSettingsWindow;
-			}
-			if (ImGui::MenuItem("Open .obj"))
-			{
-				std::string path = Walnut::OpenFileDialog::OpenFile(".obj");
-				if (!path.empty())
+				if (ImGui::MenuItem("Settings"))
 				{
-					
-
+					m_ShowSettingsWindow = !m_ShowSettingsWindow;
 				}
-				
-				
-			}
-			if (ImGui::MenuItem("Exit"))
-			{
-				app->Close();
-			}
+				if (ImGui::MenuItem("Open .obj"))
+				{
+					std::string path = Walnut::OpenFileDialog::OpenFile(".obj");
+					if (!path.empty())
+					{
+					}
+				}
+				if (ImGui::MenuItem("Exit"))
+				{
+					app->Close();
+				}
 
-			ImGui::EndMenu();
-		}
-		
-	});
-	
+				ImGui::EndMenu();
+			}
+			if (ImGui::Button("Play Game"))
+			{
+				//Use pkg location and get one folder up and run Startup.exe
+				std::string path1 = std::filesystem::path(path).parent_path().string() + "/Startup.exe";
+				system(path1.c_str());
+			}
+		});
+
 	return app;
 }

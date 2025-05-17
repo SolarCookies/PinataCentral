@@ -14,7 +14,7 @@ namespace Zlib {
 
 	//calculates the checksum of a CAFF header (Where the checksum bytes are nulled)
 	//CREDIT TO MOJOBOJO FOR THIS AWESOME, WORKING HEADER CHECKSUM RECALCULATOR :D 
-	//Copyed from https://github.com/weighta/Mumbos-Motors
+	//Copied from https://github.com/weighta/Mumbos-Motors
 	inline static uint32_t CAFF_checksum(BYTES CAFFHeader) {
 		uint32_t r11 = 0;
 
@@ -232,7 +232,7 @@ namespace Zlib {
 		return value;
 	}
 
-	// Converts bytes to ascii string
+	// Converts bytes to ASCII string
 	inline static std::string ConvertBytesToString(BYTES& data) {
 		return std::string(data.begin(), data.end());
 	}

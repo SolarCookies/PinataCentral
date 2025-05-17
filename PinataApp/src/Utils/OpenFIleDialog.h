@@ -167,10 +167,15 @@ namespace Walnut
 			return std::filesystem::directory_entry(path).is_directory();
 		}
 
-		//Funtion that returns all files in a directory
+		//Function that returns all files in a directory
 		inline static  std::vector<std::string> GetFilesInDirectory(const std::string& path) {
 			std::vector<std::string> files;
 			//files in path
+			//check if folder exists first
+			if (!std::filesystem::exists(path)) {
+				std::cout << "Path does not exist: " << path << std::endl;
+				return files;
+			}
 			auto directory_iterator = std::filesystem::directory_iterator(path);
 			//The only files we care about are .pkg files and they count up ie . 1.pkg, 2.pkg, 3.pkg
 			int count = 0;
@@ -224,7 +229,7 @@ namespace Walnut
 		inline static BYTES Read_Bytes(std::ifstream& Stream, uint32_t Size) {
 			BYTES Data(Size);
 			Stream.read(reinterpret_cast<char*>(Data.data()), Size);
-			//forword offset by size
+			//forward offset by size
 			//SeekCur(Stream, Size);
 			return Data;
 		}
