@@ -17,6 +17,8 @@
 #include "UI/FileBrowser/FileBrowser.h"
 #include "Rendering/Renderer.h"
 #include "Utils/Log.hpp"
+#include "Debug_Pack.h"
+#include "Data_Wad.h"
 
 //Data Windows
 #include "UI/DataWindows/DataSettingsWindow.h"
@@ -171,15 +173,13 @@ public:
 	//This runs every frame and is used to render the 3d scene
 	virtual void OnRender() override
 	{
-		// Render the model to the off-screen frame-buffer
-		//m_Renderer.Render(Walnut::Application::GetMainWindowData(), m_Viewport.m_ViewportWidth, m_Viewport.m_ViewportHeight);
+		
 	}
 
 	//This runs on begin play and is used to initialize the renderer along with other things that need to be initialized before the app renders for the first time
 	virtual void OnAttach() override
 	{
-		//m_Renderer.Init(Walnut::Application::GetMainWindowData());
-		//m_Viewport.run();
+		
 	}
 
 private:
@@ -199,8 +199,6 @@ private:
 
 	vector<DataSettingsWindow*> m_DataSettingsWindows;
 
-	//Renderer handles the rendering of models (I followed a tutorial to get this working thats why the namespace is "cubed")
-	//cubed::Renderer m_Renderer;
 };
 
 //This is the entry point for the application
@@ -256,6 +254,25 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 				//Use pkg location and get one folder up and run Startup.exe
 				std::string path1 = std::filesystem::path(path).parent_path().string() + "/Startup.exe";
 				system(path1.c_str());
+			}
+			if (ImGui::Button("Open Debug Pack"))
+			{
+				std::string path1 = Walnut::OpenFileDialog::OpenFile("Debug Pack\0*.bin\0\0");
+				if (!path1.empty())
+				{
+					//Open the debug pack
+					debug_pack::read(path1);
+				}
+
+			}
+			if (ImGui::Button("Open Data.wad"))
+			{
+				std::string path1 = Walnut::OpenFileDialog::OpenFile("Data Wad\0*.wad\0\0");
+				if (!path1.empty())
+				{
+					//Open the data wad
+					Data_Wad::read(path1);
+				}
 			}
 		});
 

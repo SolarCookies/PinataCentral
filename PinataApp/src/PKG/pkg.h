@@ -9,80 +9,8 @@
 #include "../Utils/ZLibHelpers.h"
 #include "../Utils/OpenFileDialog.h"
 #include "Walnut/Timer.h"
+#include "CAFF.h"
 
-
-enum class FileType
-{
-	Unknown,
-	DDS,
-	RawImage,
-	XUI_Scene
-};
-
-enum class ChunkType
-{
-	Unknown,
-	VDAT,
-	VGPU,
-	DDS
-};
-
-struct CAFF_Info {
-	std::string PKGpath = "";
-	uint32_t Offset = -0;
-	uint32_t Size = 0;
-	uint32_t Number = 0;
-	uint32_t Unknown = 0;
-};
-
-struct CAFF {
-	CAFF_Info CAFF_Info;
-	std::string CAFF_Version = "";
-	uint32_t ChunkCount = 0;
-	uint32_t ChunkSpreadCount = 0;
-	uint32_t VREF_Offset = 0;
-	uint32_t VREF_Uncompressed_Size = 0;
-	uint32_t VREF_Compressed_Size = 0;
-	uint32_t VLUT_Offset = 0;
-	uint32_t VLUT_Uncompressed_Size = 0;
-	uint32_t VLUT_Compressed_Size = 0;
-};
-
-struct ChunkInfoOffsets {
-	uint32_t VDAT_Offset_Location = 0;
-	uint32_t VDAT_Size_Location = 0;
-	uint32_t VGPU_Offset_Location = 0;
-	uint32_t VGPU_Size_Location = 0;
-};
-
-struct ChunkInfo {
-	std::string ChunkName = "";
-	uint32_t ID = 0;
-	uint32_t VDAT_Offset = 0;
-	uint32_t VDAT_Size = 0;
-	BYTE VDAT_File_Data_1 = NULL;
-	BYTE VDAT_File_Data_2 = NULL;
-	bool HasVGPU = false;
-	uint32_t VGPU_Offset = 0;
-	uint32_t VGPU_Size = 0;
-	BYTE VGPU_File_Data_1 = NULL;
-	BYTE VGPU_File_Data_2 = NULL;
-	ChunkInfoOffsets OffsetLocations;
-	FileType Type = FileType::Unknown;
-	BYTE DebugData = NULL; //Used for debugging when checking if a offset is correct
-};
-
-struct VREF {
-	CAFF_Info CAFF;
-	std::vector<std::string> ChunkNames;
-	uint32_t VGPU_Offset = 0;
-	uint32_t VGPU_Compressed_Size = 0;
-	uint32_t VGPU_Uncompressed_Size = 0;
-	uint32_t VDAT_Offset = 0;
-	uint32_t VDAT_Compressed_Size = 0;
-	uint32_t VDAT_Uncompressed_Size = 0;
-	std::vector<ChunkInfo> ChunkInfos;
-};
 
 struct PKG {
 	std::string path = "";
@@ -156,48 +84,7 @@ namespace pkg {
 		return FileType::Unknown;
 	}
 
-	inline static bool VREFTypeCheck(BYTES& VREF) {
-		bool isData = true;
-		bool isGPU = true;
-		bool isStream = true;
-
-		//0x02000000
-		BYTES DataType = { BYTE(0x02), BYTE(0x00), BYTE(0x00), BYTE(0x00) };
-		//0x05010000
-		BYTES GPUType = { BYTE(0x05), BYTE(0x01), BYTE(0x00), BYTE(0x00) };
-		//0x0C000000
-		BYTES StreamType = { BYTE(0x0C), BYTE(0x00), BYTE(0x00), BYTE(0x00) };
-
-		//Get TYPE from VREF (At offset 37, 4 bytes)
-		BYTES TYPE = { VREF[37], VREF[38], VREF[39], VREF[40] };
-
-		for (BYTE b : TYPE) {
-			int current_index = 0;
-			if (b != DataType[current_index]) {
-				isData = false;
-			}
-			if (b != GPUType[current_index]) {
-				isGPU = false;
-			}
-			if (b != StreamType[current_index]) {
-				isStream = false;
-			}
-			current_index++;
-		}
-
-		if (isData) {
-			return true;
-		}
-		else if (isGPU) {
-			return true;
-		}
-		else if (isStream) {
-			return true;
-		}
-		else {
-			return true; //enabled for testing
-		}
-	}
+	
 
 	inline static PKG ReadPKG(std::string path) {
 		Walnut::Timer timer;
@@ -336,10 +223,6 @@ namespace pkg {
 			VREF.VDAT_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			Log("VDAT Compressed Size: " + std::to_string(VREF.VDAT_Compressed_Size), EType::Normal);
 
-			offset += 20;
-
-			bool VREFType = VREFTypeCheck(VREF_Uncompressed);
-
 			offset = 42;
 
 			//VGPU Uncompressed Size (4 bytes)
@@ -352,8 +235,6 @@ namespace pkg {
 			VREF.VGPU_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			Log("VGPU Compressed Size: " + std::to_string(VREF.VGPU_Compressed_Size), EType::Normal);
 
-			offset = 81; //? WTH why am I setting the offset to 81? if I'm not even using it? -_-
-
 			//VLUT_OFFSET + VLUT_Compressed_Size
 			VREF.VDAT_Offset = C.VLUT_Offset + C.VLUT_Compressed_Size;
 			Log("VDAT Offset: " + std::to_string(VREF.VDAT_Offset), EType::Normal);
@@ -363,6 +244,10 @@ namespace pkg {
 			Log("VGPU Offset: " + std::to_string(VREF.VGPU_Offset), EType::Normal);
 
 			Log("Reading Chunk Info...", EType::BLUE);
+
+
+			offset = 81;
+
 			//for each chunk
 			for (int i = 0; i < (C.ChunkCount - 1); i++) {
 				uint32_t ChunkNameoffset;
@@ -371,7 +256,7 @@ namespace pkg {
 				if (i == (C.ChunkCount - 1)) {
 					ChunkNameoffset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 					offset = 77;
-					uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+					uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, 77, pkg.IsBigEndian);
 					NameSize = (NameBlockSize + (81 + (C.ChunkCount * 4))) - (ChunkNameoffset + (81 + (C.ChunkCount * 4)));
 					BYTES ChunkName = Walnut::OpenFileDialog::CopyBytes(VREF_Uncompressed, ChunkNameoffset + (81 + (C.ChunkCount * 4)), NameSize);
 					offset += 4;
