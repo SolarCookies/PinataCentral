@@ -584,28 +584,22 @@ namespace pkg {
 
 		file.close();
 
-		Log("Patching VDAT at: " + std::to_string(ChunkInfo.VDAT_Offset) + " with size: " + std::to_string(ChunkInfo.VDAT_Size), EType::Normal);
+		// --- VDAT PATCHING (append to end) ---
+		Log("Appending VDAT at end of stream", EType::Normal);
+		// Optionally add a buffer, e.g., +0x10, to match VGPU logic
+		PatchedStreams.VDAT.resize(PatchedStreams.VDAT.size() + 0x10);
+		uint32_t NewVDAT_Offset = PatchedStreams.VDAT.size();
+		PatchedStreams.VDAT.insert(PatchedStreams.VDAT.begin() + NewVDAT_Offset, VDAT.begin(), VDAT.end());
+		// Update VREF with new VDAT offset
+		Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, ChunkInfo.OffsetLocations.VDAT_Offset_Location, NewVDAT_Offset, pkg.IsBigEndian);
 
-		//Patching VDAT
-		for (int i = 0; i < VDAT.size(); i++) {
-			PatchedStreams.VDAT[ChunkInfo.VDAT_Offset + i] = VDAT[i];
-		}
-
+		// --- VGPU PATCHING (existing logic) ---
 		if (ChunkInfo.HasVGPU) {
-			Log("Patching VGPU at: " + std::to_string(ChunkInfo.VGPU_Offset) + " with size: " + std::to_string(ChunkInfo.VGPU_Size), EType::Normal);
-
-			//Patching VGPU
-			//for (int i = 0; i < VGPU.size(); i++) {
-			//	PatchedStreams.VGPU[ChunkInfo.VGPU_Offset + i] = VGPU[i];
-			//}
-
-			//resize VGPU to have a small buffer at the end
+			Log("Appending VGPU at end of stream", EType::Normal);
 			PatchedStreams.VGPU.resize(PatchedStreams.VGPU.size() + 0x10);
 			uint32_t NewVGPU_Offset = PatchedStreams.VGPU.size();
 			PatchedStreams.VGPU.insert(PatchedStreams.VGPU.begin() + NewVGPU_Offset, VGPU.begin(), VGPU.end());
-			//Update VREF with new VGPU offset
 			Walnut::OpenFileDialog::SetIntAtOffset(PatchedStreams.VREF, ChunkInfo.OffsetLocations.VGPU_Offset_Location, NewVGPU_Offset, pkg.IsBigEndian);
-
 			Log("Patched VGPU", EType::Normal);
 		}
 
@@ -857,6 +851,7 @@ namespace pkg {
 					//Check if the chunk is the same as the patch file and if the chunk is the same size
 					switch (Type) {
 					case ChunkType::VDAT:
+						/*
 						if (OGVDATChunk.size() == PatchFileData.size()) {
 							if (OGVDATChunk == PatchFileData) {
 								Log("Chunk is the same!, Aborting...", EType::Error);
@@ -873,6 +868,9 @@ namespace pkg {
 							Log("PatchFileData Size: " + std::to_string(PatchFileData.size()), EType::Error);
 							return;
 						}
+						*/
+						Log("Patching Data Stream", EType::Normal);
+						NewStreams = UpdateStreams_AppendEnd(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], pkg.VREFs[vref_i].ChunkInfos[chunk_i], PatchFileData, OGVGPUChunk);
 						break;
 					case ChunkType::VGPU:
 						Log("Patching GPU Stream", EType::Normal);
