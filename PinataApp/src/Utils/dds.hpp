@@ -9,7 +9,7 @@ namespace dds
 	inline void ConvertDDS(const std::string& ddsPath, const std::string& pngPath)
 	{
 		//texconv.exe path.dds -ft png -o path.png
-		std::string command = "texconv.exe " + ddsPath + " -ft png -o " + pngPath + " -y";
+		std::string command = "Assets/texconv.exe " + ddsPath + " -ft png -o " + pngPath + " -y";
 		system(command.c_str());
 	}
 
@@ -17,7 +17,7 @@ namespace dds
 	inline Walnut::Image LoadDDS(const std::string& ddsPath)
 	{
 		ConvertDDS(ddsPath, "./");
-		return Walnut::Image("Test.PNG");
+		return Walnut::Image("Assets/temp.PNG");
 	}
 
 }

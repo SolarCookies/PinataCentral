@@ -609,7 +609,7 @@ namespace Walnut {
 		// Load images
 		{
 			uint32_t w, h;
-            m_AppHeaderIcon = std::make_shared<Walnut::Image>("./PinataCentralIcon.png");
+            m_AppHeaderIcon = std::make_shared<Walnut::Image>("Assets/PinataCentralIcon.png");
 
 		}
 		{

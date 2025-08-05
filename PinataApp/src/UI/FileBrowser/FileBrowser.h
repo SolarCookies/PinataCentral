@@ -57,16 +57,16 @@ public:
 	std::string SearchTerm = "";
 
 	//Settings.ini location
-	std::string iniPath = std::filesystem::current_path().string() + "/settings.ini";
+	std::string iniPath = std::filesystem::current_path().string() + "/Assets/settings.ini";
 
 	char Bundlepath[256] = "";
 
 	//image thumbnails
-	Walnut::Image m_Unknown_Thumbnail = Walnut::Image("./UI_Icon_NoTag.PNG");
-	Walnut::Image m_Requirement_Thumbnail = Walnut::Image("./UI_Icon_Requirement.PNG");
-	Walnut::Image m_Tag_Thumbnail = Walnut::Image("./UI_Icon_TagGroup.PNG");
-	Walnut::Image m_Texture_Thumbnail = Walnut::Image("./UI_Icon_Texture.PNG");
-	Walnut::Image m_UnknownTexture_Thumbnail = Walnut::Image("./UI_Icon_Texture_Unknown.PNG");
+	Walnut::Image m_Unknown_Thumbnail = Walnut::Image("Assets/UI_Icon_NoTag.PNG");
+	Walnut::Image m_Requirement_Thumbnail = Walnut::Image("Assets/UI_Icon_Requirement.PNG");
+	Walnut::Image m_Tag_Thumbnail = Walnut::Image("Assets/UI_Icon_TagGroup.PNG");
+	Walnut::Image m_Texture_Thumbnail = Walnut::Image("Assets/UI_Icon_Texture.PNG");
+	Walnut::Image m_UnknownTexture_Thumbnail = Walnut::Image("Assets/UI_Icon_Texture_Unknown.PNG");
 
 	//Walnut::Image TestDDS;
 
@@ -92,6 +92,21 @@ public:
 		}
 
 		return &m_Unknown_Thumbnail;
+	}
+
+	void reloadPKG()
+	{
+		if (CurrentPKG != "")
+		{
+			//pkg::ReloadPKG(CurrentPKG, pkg);
+			CurrentCAFF = "";
+			CurrentAid = "";
+			CurrentPKG = "";
+			FoundFiles = false;
+			//pkg = PKG();
+			HexData.clear();
+
+		}
 	}
 
 	void RenderFileBrowser(RenderMode r) {
@@ -221,7 +236,7 @@ public:
 											//select Patch file of .vdat .vgpu .chunk .dds
 											std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("VDAT Files\0*.vdat\0\0");
 											//select NewPKGExportPath
-											std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
+											std::string NewPKGExportPath = "";
 
 											std::string PatchFileExt = PatchFilePath.substr(PatchFilePath.find_last_of(".") + 1);
 
@@ -241,6 +256,8 @@ public:
 
 											//replace chunk
 											pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true);
+											reloadPKG();
+											//return;
 										}
 										if (chunk->HasVGPU)
 										{
@@ -261,7 +278,7 @@ public:
 												//select Patch file of .vdat .vgpu .chunk .dds
 												std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("VGPU Files\0*.vgpu\0\0");
 												//select NewPKGExportPath
-												std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
+												std::string NewPKGExportPath = "";
 
 												std::string PatchFileExt = PatchFilePath.substr(PatchFilePath.find_last_of(".") + 1);
 
@@ -281,6 +298,8 @@ public:
 
 												//replace chunk
 												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true);
+												reloadPKG();
+												//return;
 											}
 										}
 										if (chunk->Type == FileType::DDS)
@@ -292,11 +311,11 @@ public:
 												//remove first 4 bytes
 												DDSData.erase(DDSData.begin(), DDSData.begin() + 4);
 												//write to temp.dds
-												std::ofstream DDSFile("temp.dds", std::ios::binary);
+												std::ofstream DDSFile("Assets/temp.dds", std::ios::binary);
 												DDSFile.write((char*)DDSData.data(), DDSData.size());
 												DDSFile.close();
 												//load temp.dds
-												dds::LoadDDS("temp.dds");
+												dds::LoadDDS("Assets/temp.dds");
 												//delay
 												UpdateImage = true;
 												ShowRaw = false;
@@ -318,11 +337,13 @@ public:
 												//select Patch file of .vdat .vgpu .chunk .dds
 												std::string PatchFilePath = Walnut::OpenFileDialog::OpenFile("DDS Files\0*.dds\0\0");
 												//select NewPKGExportPath
-												std::string NewPKGExportPath = Walnut::OpenFileDialog::OpenFolder();
+												std::string NewPKGExportPath = "";
 												std::string PatchFileExt = PatchFilePath.substr(PatchFilePath.find_last_of(".") + 1);
 												ChunkType PatchFileType = ChunkType::VGPU;
 												//replace chunk
 												pkg::ReplaceChunk(pkg, currentcaffindex, chunk->ChunkName, PatchFileType, PatchFilePath, NewPKGExportPath, true, true);
+												reloadPKG();
+												//return;
 											}
 										}
 										if (chunk->Type == FileType::RawImage) {
@@ -534,7 +555,7 @@ public:
 		}
 
 		if (ShowImageWindow) {
-			RenderImage("temp.PNG");
+			RenderImage("Assets/temp.PNG");
 		}
 	}
 

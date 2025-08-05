@@ -28,8 +28,10 @@ struct Streams {
 	BYTES VGPU;
 };
 
-//macro that returns nearest multiple of s from x (Greater then or equal too) | r =(((x - (x % s )) + s) - x) | Maybe ((4014080 / 2048) + 1) * 2048?
-#define NEAREST_MULTIPLE(x,s) (x * 2); //Doubles the offset (technically a multiple of 2 but large)
+inline static uint32_t GetNearestMultiple(uint32_t value, uint32_t multiple) {
+	uint32_t remainder = value % multiple;
+	return remainder == 0 ? value : value + multiple - remainder;
+}
 
 namespace pkg {
 	inline static BYTES GetVREFBYTES(std::ifstream& file, CAFF C) {
@@ -249,7 +251,7 @@ namespace pkg {
 			offset = 81;
 
 			//for each chunk
-			for (int i = 0; i < (C.ChunkCount - 1); i++) {
+			for (int i = 0; i < (C.ChunkCount); i++) {
 				uint32_t ChunkNameoffset;
 				uint32_t NameSize;
 
@@ -286,7 +288,7 @@ namespace pkg {
 			//Beginning of InfoBlock
 			offset = (NameBlockSize + 81 + (C.ChunkCount * 4)) + 4;
 
-			for (int i = 0; i < (C.ChunkCount - 1); i++) {
+			for (int i = 0; i < (C.ChunkCount); i++) {
 				ChunkInfo chunkinfo;
 				ChunkInfoOffsets chunkinfooffsets;
 				chunkinfo.ChunkName = VREF.ChunkNames[i];
@@ -734,7 +736,7 @@ namespace pkg {
 				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
 				//std::cout << "Old CAFF Offset: " << CaffOffset << " New CAFF Offset: " << NextOffset << std::endl;
 
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
+				int NextOffset = GetNearestMultiple(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
 
 				Log("Old CAFF Offset: " + std::to_string(CaffOffset) + " New CAFF Offset: " + std::to_string(NextOffset), EType::Normal);
 
@@ -757,7 +759,7 @@ namespace pkg {
 			else {
 				//int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048);
 
-				int NextOffset = NEAREST_MULTIPLE(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
+				int NextOffset = GetNearestMultiple(CaffOffset, 2048); //Figure out a way to get the next 2048 offset eventually
 
 				Log("Old CAFF Offset: " + std::to_string(CaffOffset) + " New CAFF Offset: " + std::to_string(NextOffset), EType::Normal);
 
@@ -1027,5 +1029,10 @@ namespace pkg {
 				}
 			}
 		}
+	}
+
+	inline static void ReloadPKG(std::string path, PKG& pkg) {
+		pkg = PKG(); //Clear existing PKG data
+		pkg = pkg::ReadPKG(path);
 	}
 }

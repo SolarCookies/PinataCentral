@@ -15,6 +15,7 @@
 
 #include "Rendering/Viewport.h"
 #include "UI/FileBrowser/FileBrowser.h"
+#include "UI/CommonPatches.h"
 #include "Rendering/Renderer.h"
 #include "Utils/Log.hpp"
 #include "Debug_Pack.h"
@@ -27,7 +28,7 @@
 std::string workingDirectory = std::filesystem::current_path().string();
 
 //Settings.ini location
-std::string settingsPath = workingDirectory + "/settings.ini";
+std::string settingsPath = workingDirectory + "/Assets/settings.ini";
 
 //Settings window toggle
 bool m_ShowSettingsWindow = false;
@@ -107,6 +108,8 @@ public:
 
 		m_FileBrowser.RenderFileBrowser(RenderMode::List);
 
+		//m_CommonPatches.Render();
+
 		if (ImGui::Begin("Details"))
 		{
 			ImGui::Text("Details");
@@ -179,7 +182,7 @@ public:
 	//This runs on begin play and is used to initialize the renderer along with other things that need to be initialized before the app renders for the first time
 	virtual void OnAttach() override
 	{
-		
+		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 	}
 
 private:
@@ -197,6 +200,10 @@ private:
 	//File Browser handles the displaying and user interaction with the .pkg files
 	FileBrowser m_FileBrowser;
 
+	CommonPatches m_CommonPatches;
+
+
+
 	vector<DataSettingsWindow*> m_DataSettingsWindows;
 
 };
@@ -208,6 +215,8 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	spec.Name = "Pinata Central";
 	spec.CustomTitlebar = true;
 	spec.UseDockspace = true;
+	spec.IconPath = "Assets/PinataCentralIcon.png"; //Path to the icon for the application
+	spec.CenterWindow = true; //Center the window on the screen
 
 	//load settings from settings.ini
 	if (Walnut::OpenFileDialog::FileExists(settingsPath))
@@ -235,11 +244,26 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 				{
 					m_ShowSettingsWindow = !m_ShowSettingsWindow;
 				}
-				if (ImGui::MenuItem("Open .obj"))
+				if (std::filesystem::exists(std::filesystem::path(path).parent_path().string() + "/Startup.exe"))
 				{
-					std::string path = Walnut::OpenFileDialog::OpenFile(".obj");
-					if (!path.empty())
+					if (ImGui::MenuItem("Open Debug Pack (WIP)"))
 					{
+						std::string path1 = Walnut::OpenFileDialog::OpenFile("Debug Pack\0*.bin\0\0");
+						if (!path1.empty())
+						{
+							//Open the debug pack
+							debug_pack::read(path1);
+						}
+
+					}
+					if (ImGui::MenuItem("Open Data.wad (WIP)"))
+					{
+						std::string path1 = Walnut::OpenFileDialog::OpenFile("Data Wad\0*.wad\0\0");
+						if (!path1.empty())
+						{
+							//Open the data wad
+							Data_Wad::read(path1);
+						}
 					}
 				}
 				if (ImGui::MenuItem("Exit"))
@@ -249,32 +273,20 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
 				ImGui::EndMenu();
 			}
-			if (ImGui::Button("Play Game"))
-			{
-				//Use pkg location and get one folder up and run Startup.exe
-				std::string path1 = std::filesystem::path(path).parent_path().string() + "/Startup.exe";
-				system(path1.c_str());
-			}
-			if (ImGui::Button("Open Debug Pack"))
-			{
-				std::string path1 = Walnut::OpenFileDialog::OpenFile("Debug Pack\0*.bin\0\0");
-				if (!path1.empty())
-				{
-					//Open the debug pack
-					debug_pack::read(path1);
-				}
 
-			}
-			if (ImGui::Button("Open Data.wad"))
+			if (std::filesystem::exists(std::filesystem::path(path).parent_path().string() + "/Startup.exe"))
 			{
-				std::string path1 = Walnut::OpenFileDialog::OpenFile("Data Wad\0*.wad\0\0");
-				if (!path1.empty())
+				if (ImGui::Button("Play Game"))
 				{
-					//Open the data wad
-					Data_Wad::read(path1);
+					//Use pkg location and get one folder up and run Startup.exe
+					std::string path1 = std::filesystem::path(path).parent_path().string() + "\\Startup.exe";
+					Log("Running game at: " + path1, EType::Warning);
+					std::string quotedPath = "\"" + path1 + "\"";
+					system(quotedPath.c_str());
 				}
 			}
 		});
 
 	return app;
 }
+
