@@ -4,9 +4,10 @@
 #include <filesystem>
 #include "PKG/pkg.h"
 
+
 namespace debug_pack {
 
-    std::vector<BYTES> CAFFS;
+	std::vector<BYTES> CAFFS;
 
 	void read(std::string path) {
 		//check if file exists
@@ -14,46 +15,46 @@ namespace debug_pack {
 			std::cout << "File does not exist: " << path << std::endl;
 			return;
 		}
-        else {
-            std::cout << "File exists: " << path << std::endl;
+		else {
+			std::cout << "File exists: " << path << std::endl;
 			CAFFS.clear();
-            // Read the file into a buffer
-            std::ifstream file(path, std::ios::binary | std::ios::ate);
-            if (!file) {
-                std::cout << "Failed to open file: " << path << std::endl;
-                return;
-            }
-            std::streamsize size = file.tellg();
-            file.seekg(0, std::ios::beg);
+			// Read the file into a buffer
+			std::ifstream file(path, std::ios::binary | std::ios::ate);
+			if (!file) {
+				std::cout << "Failed to open file: " << path << std::endl;
+				return;
+			}
+			std::streamsize size = file.tellg();
+			file.seekg(0, std::ios::beg);
 
-            std::vector<uint8_t> buffer(size);
-            if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-                std::cout << "Failed to read file: " << path << std::endl;
-                return;
-            }
+			std::vector<uint8_t> buffer(size);
+			if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+				std::cout << "Failed to read file: " << path << std::endl;
+				return;
+			}
 
-            // Search for "CAFF" markers
-            const std::vector<uint8_t> marker = { 0x43, 0x41, 0x46, 0x46 }; // "CAFF"
-            size_t pos = 0;
-            std::vector<size_t> marker_positions;
+			// Search for "CAFF" markers
+			const std::vector<uint8_t> marker = { 0x43, 0x41, 0x46, 0x46 }; // "CAFF"
+			size_t pos = 0;
+			std::vector<size_t> marker_positions;
 
-            // Find all marker positions
-            while (pos + marker.size() <= buffer.size()) {
-                if (std::equal(marker.begin(), marker.end(), buffer.begin() + pos)) {
-                    marker_positions.push_back(pos);
-                }
-                ++pos;
-            }
+			// Find all marker positions
+			while (pos + marker.size() <= buffer.size()) {
+				if (std::equal(marker.begin(), marker.end(), buffer.begin() + pos)) {
+					marker_positions.push_back(pos);
+				}
+				++pos;
+			}
 
-            // Extract segments between markers
-            for (size_t i = 0; i < marker_positions.size(); ++i) {
-                size_t start = marker_positions[i];
-                size_t end = (i + 1 < marker_positions.size()) ? marker_positions[i + 1] : buffer.size();
-                BYTES segment(buffer.begin() + start, buffer.begin() + end);
-                CAFFS.push_back(segment);
-            }
-			int caffNumber = CAFFS.size()-1;
-            std::cout << "Found " << CAFFS.size() << " CAFF segments." << std::endl;
+			// Extract segments between markers
+			for (size_t i = 0; i < marker_positions.size(); ++i) {
+				size_t start = marker_positions[i];
+				size_t end = (i + 1 < marker_positions.size()) ? marker_positions[i + 1] : buffer.size();
+				BYTES segment(buffer.begin() + start, buffer.begin() + end);
+				CAFFS.push_back(segment);
+			}
+			int caffNumber = CAFFS.size() - 1;
+			std::cout << "Found " << CAFFS.size() << " CAFF segments." << std::endl;
 			//Debug pack is Big Endian initially with the CAFF header, however the vref is little endian
 			CAFF caff = caff::Read_Header(CAFFS[caffNumber]);
 			std::cout << "CAFF " << caffNumber << " Version: " << caff.CAFF_Version << std::endl;
@@ -67,7 +68,7 @@ namespace debug_pack {
 
 			BYTES VREFB = caff::Get_VREF(CAFFS[caffNumber], caff);
 
-            //Debug pack is Big Endian initially with the CAFF header, however the vref is little endian
+			//Debug pack is Big Endian initially with the CAFF header, however the vref is little endian
 			VREF vref = caff::Read_VREF(VREFB, caff, caff.IsBigEndian);
 
 			std::cout << "VREF " << " VGPU Offset: " << vref.VGPU_Offset << std::endl;
@@ -115,8 +116,8 @@ namespace debug_pack {
 				std::cout << "Failed to save CAFF file to: " << caffPath << std::endl;
 			}
 
-        }
+		}
 	}
 
-    
+
 }

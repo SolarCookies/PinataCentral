@@ -82,6 +82,10 @@ namespace pkg {
 			{
 				return FileType::XUI_Scene;
 			}
+			//If name starts with aid_model_ then its a model
+			if(ChunkName.find("aid_model_") != std::string::npos) {
+				return FileType::Model;
+			}
 		}
 		return FileType::Unknown;
 	}

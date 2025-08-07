@@ -10,7 +10,8 @@ enum class FileType
 	Unknown,
 	DDS,
 	RawImage,
-	XUI_Scene
+	XUI_Scene,
+	Model
 };
 
 enum class ChunkType
@@ -18,7 +19,8 @@ enum class ChunkType
 	Unknown,
 	VDAT,
 	VGPU,
-	DDS
+	DDS,
+	Model
 };
 
 struct CAFF_Info {

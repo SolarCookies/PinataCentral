@@ -11,6 +11,7 @@
 #include <filesystem>
 #include "omp.h"
 #include "../../UI/DataWindows/DataSettingsWindow.h"
+#include "../../PKG/OGModel.h"
 
 #include <random>
 
@@ -66,6 +67,7 @@ public:
 	Walnut::Image m_Requirement_Thumbnail = Walnut::Image("Assets/UI_Icon_Requirement.PNG");
 	Walnut::Image m_Tag_Thumbnail = Walnut::Image("Assets/UI_Icon_TagGroup.PNG");
 	Walnut::Image m_Texture_Thumbnail = Walnut::Image("Assets/UI_Icon_Texture.PNG");
+	Walnut::Image m_Model_Thumbnail = Walnut::Image("Assets/UI_Icon_Model.PNG");
 	Walnut::Image m_UnknownTexture_Thumbnail = Walnut::Image("Assets/UI_Icon_Texture_Unknown.PNG");
 
 	//Walnut::Image TestDDS;
@@ -89,6 +91,9 @@ public:
 				return &m_Texture_Thumbnail;
 			}
 			return &m_UnknownTexture_Thumbnail;
+		}
+		if (ChunkName.find("4.00") != std::string::npos) {
+			return &m_Model_Thumbnail;
 		}
 
 		return &m_Unknown_Thumbnail;
@@ -359,6 +364,24 @@ public:
 												ShowImageWindow = true;
 
 												file.close();
+											}
+										}
+										if (chunk->Type == FileType::Model && !pkg.IsBigEndian)
+										{
+											if (ImGui::Button("Print Texture Data")) {
+												std::ifstream file(pkg.path, std::ios::binary);
+												BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
+												std::vector<std::string> TextureNames = GetModelTextureNames(VDATData);
+												Log("Model Texture Names: ", EType::Warning);
+												for(std::string& name : TextureNames)
+												{
+													Log(name,EType::GREEN);
+												}
+												std::vector<std::string> TextureMapNames = GetModelTextureMapNames(VDATData);
+												for (std::string& name : TextureMapNames)
+												{
+													Log(name, EType::BLUE);
+												}
 											}
 										}
 										ImGui::EndPopup();

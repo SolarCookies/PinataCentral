@@ -20,6 +20,7 @@
 #include "Utils/Log.hpp"
 #include "Debug_Pack.h"
 #include "Data_Wad.h"
+#include "Bundle.h"
 
 //Data Windows
 #include "UI/DataWindows/DataSettingsWindow.h"
@@ -263,6 +264,15 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 						{
 							//Open the data wad
 							Data_Wad::read(path1);
+						}
+					}
+					if (ImGui::MenuItem("Open Bundle.bnl (WIP)"))
+					{
+						std::string path1 = Walnut::OpenFileDialog::OpenFile("Bundle\0*.bnl\0\0");
+						if (!path1.empty())
+						{
+							//Open the Bundle
+							Bundle::read(path1);
 						}
 					}
 				}
