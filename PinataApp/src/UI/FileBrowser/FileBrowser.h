@@ -95,6 +95,9 @@ public:
 		if (ChunkName.find("4.00") != std::string::npos) {
 			return &m_Model_Thumbnail;
 		}
+		if (ChunkName.find("4.01") != std::string::npos) {
+			return &m_Model_Thumbnail;
+		}
 
 		return &m_Unknown_Thumbnail;
 	}
@@ -366,22 +369,14 @@ public:
 												file.close();
 											}
 										}
-										if (chunk->Type == FileType::Model && !pkg.IsBigEndian)
+										if (chunk->Type == FileType::Model)
 										{
-											if (ImGui::Button("Print Texture Data")) {
+											
+											if (ImGui::Button("Export Model (WIP)")) {
 												std::ifstream file(pkg.path, std::ios::binary);
 												BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
-												std::vector<std::string> TextureNames = GetModelTextureNames(VDATData);
-												Log("Model Texture Names: ", EType::Warning);
-												for(std::string& name : TextureNames)
-												{
-													Log(name,EType::GREEN);
-												}
-												std::vector<std::string> TextureMapNames = GetModelTextureMapNames(VDATData);
-												for (std::string& name : TextureMapNames)
-												{
-													Log(name, EType::BLUE);
-												}
+												BYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												ExportModel(VDATData, VGPUData, "", pkg.IsBigEndian);
 											}
 										}
 										ImGui::EndPopup();

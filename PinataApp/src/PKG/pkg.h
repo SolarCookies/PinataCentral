@@ -82,10 +82,10 @@ namespace pkg {
 			{
 				return FileType::XUI_Scene;
 			}
-			//If name starts with aid_model_ then its a model
-			if(ChunkName.find("aid_model_") != std::string::npos) {
-				return FileType::Model;
-			}
+		}
+		//If name starts with aid_model_ then its a model
+		if (ChunkName.find("aid_model_") != std::string::npos) {
+			return FileType::Model;
 		}
 		return FileType::Unknown;
 	}
@@ -288,6 +288,7 @@ namespace pkg {
 
 			//NameBlockSize (4 bytes)
 			uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
+			
 
 			//Beginning of InfoBlock
 			offset = (NameBlockSize + 81 + (C.ChunkCount * 4)) + 4;
