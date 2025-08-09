@@ -213,139 +213,14 @@ namespace pkg {
 		for (CAFF C : pkg.CAFFs) {
 			Log("Reading VREF: " + std::to_string(C.CAFF_Info.Number), EType::BLUE);
 
-			VREF VREF;
+			VREF VREFn;
 
 			BYTES VREF_Uncompressed = GetVREFBYTES(file, C);
 
-			//start at first value
-			uint32_t offset = 9;
+			VREFn = caff::Read_VREF(VREF_Uncompressed, C, pkg.IsBigEndian);
 
-			VREF.VDAT_Uncompressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-			Log("VDAT Uncompressed Size: " + std::to_string(VREF.VDAT_Uncompressed_Size), EType::Normal);
-
-			offset += 20;
-
-			//VDAT Compressed Size (4 bytes)
-			VREF.VDAT_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-			Log("VDAT Compressed Size: " + std::to_string(VREF.VDAT_Compressed_Size), EType::Normal);
-
-			offset = 42;
-
-			//VGPU Uncompressed Size (4 bytes)
-			VREF.VGPU_Uncompressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-			Log("VGPU Uncompressed Size: " + std::to_string(VREF.VGPU_Uncompressed_Size), EType::Normal);
-
-			offset += 20;
-
-			//VGPU Compressed Size (4 bytes)
-			VREF.VGPU_Compressed_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-			Log("VGPU Compressed Size: " + std::to_string(VREF.VGPU_Compressed_Size), EType::Normal);
-
-			//VLUT_OFFSET + VLUT_Compressed_Size
-			VREF.VDAT_Offset = C.VLUT_Offset + C.VLUT_Compressed_Size;
-			Log("VDAT Offset: " + std::to_string(VREF.VDAT_Offset), EType::Normal);
-
-			//VDAT_OFFSET + VDAT_Compressed_Size
-			VREF.VGPU_Offset = VREF.VDAT_Offset + VREF.VDAT_Compressed_Size;
-			Log("VGPU Offset: " + std::to_string(VREF.VGPU_Offset), EType::Normal);
-
-			Log("Reading Chunk Info...", EType::BLUE);
-
-
-			offset = 81;
-
-			//for each chunk
-			for (int i = 0; i < (C.ChunkCount); i++) {
-				uint32_t ChunkNameoffset;
-				uint32_t NameSize;
-
-				if (i == (C.ChunkCount - 1)) {
-					ChunkNameoffset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-					offset = 77;
-					uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, 77, pkg.IsBigEndian);
-					NameSize = (NameBlockSize + (81 + (C.ChunkCount * 4))) - (ChunkNameoffset + (81 + (C.ChunkCount * 4)));
-					BYTES ChunkName = Walnut::OpenFileDialog::CopyBytes(VREF_Uncompressed, ChunkNameoffset + (81 + (C.ChunkCount * 4)), NameSize);
-					offset += 4;
-					VREF.ChunkNames.push_back(Zlib::ConvertBytesToString(ChunkName));
-
-					continue;
-				}
-
-				ChunkNameoffset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-
-				uint32_t NextChunkNameoffset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset + 4, pkg.IsBigEndian);
-
-				NameSize = (NextChunkNameoffset + (81 + (C.ChunkCount * 4))) - (ChunkNameoffset + (81 + (C.ChunkCount * 4)));
-
-				BYTES ChunkName = Walnut::OpenFileDialog::CopyBytes(VREF_Uncompressed, ChunkNameoffset + (81 + (C.ChunkCount * 4)), NameSize);
-
-				offset += 4;
-
-				VREF.ChunkNames.push_back(Zlib::ConvertBytesToString(ChunkName));
-			}
-
-			offset = 77;
-
-			//NameBlockSize (4 bytes)
-			uint32_t NameBlockSize = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
 			
-
-			//Beginning of InfoBlock
-			offset = (NameBlockSize + 81 + (C.ChunkCount * 4)) + 4;
-
-			for (int i = 0; i < (C.ChunkCount); i++) {
-				ChunkInfo chunkinfo;
-				ChunkInfoOffsets chunkinfooffsets;
-				chunkinfo.ChunkName = VREF.ChunkNames[i];
-				//chunk id (4 bytes)
-				chunkinfo.ID = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-				offset += 4;
-				uint32_t VDATOFFSET = offset;
-				chunkinfooffsets.VDAT_Offset_Location = offset;
-				chunkinfo.VDAT_Offset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-				offset += 4;
-				uint32_t VDATSIZE = offset;
-				chunkinfooffsets.VDAT_Size_Location = offset;
-				chunkinfo.VDAT_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-				offset += 4;
-				chunkinfo.VDAT_File_Data_1 = VREF_Uncompressed[offset];
-				offset += 1;
-				chunkinfo.VDAT_File_Data_2 = VREF_Uncompressed[offset];
-				offset += 1;
-				if (VREF_Uncompressed.size() < (offset + 4)) {
-					chunkinfo.OffsetLocations = chunkinfooffsets;
-					VREF.ChunkInfos.push_back(chunkinfo);
-				}
-				else {
-					uint32_t NextID = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-					if (NextID == chunkinfo.ID) {
-						chunkinfo.HasVGPU = true;
-						offset += 4;
-						uint32_t VGPUOFFSET = offset;
-						chunkinfooffsets.VGPU_Offset_Location = offset;
-						chunkinfo.VGPU_Offset = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-						offset += 4;
-						uint32_t VGPUSIZE = offset;
-						chunkinfooffsets.VGPU_Size_Location = offset;
-						chunkinfo.VGPU_Size = Zlib::ConvertBytesToInt(VREF_Uncompressed, offset, pkg.IsBigEndian);
-						offset += 4;
-						chunkinfo.VGPU_File_Data_1 = VREF_Uncompressed[offset];
-						offset += 1;
-						chunkinfo.VGPU_File_Data_2 = VREF_Uncompressed[offset];
-						offset += 1;
-						chunkinfo.OffsetLocations = chunkinfooffsets;
-						VREF.ChunkInfos.push_back(chunkinfo);
-					}
-					else {
-						chunkinfo.HasVGPU = false;
-						chunkinfo.OffsetLocations = chunkinfooffsets;
-						VREF.ChunkInfos.push_back(chunkinfo);
-					}
-				}
-			}
-			Log("VREF Read", EType::GREEN);
-
-			pkg.VREFs.push_back(VREF);
+			pkg.VREFs.push_back(VREFn);
 
 			//for each chunk in latest VREF
 

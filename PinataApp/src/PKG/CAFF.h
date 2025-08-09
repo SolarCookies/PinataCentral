@@ -81,6 +81,7 @@ struct VREF {
 	uint32_t NameBlockOffset = 0;
 	uint32_t InfoBlockOffset = 0;
 	std::vector<ChunkInfo> ChunkInfos;
+	bool DataOnly = false;
 };
 
 namespace caff {
@@ -132,6 +133,10 @@ namespace caff {
 		uint32_t DataType = Zlib::ConvertBytesToInt(VREF, 34, false);
 		
 		if (DataType == 1635017060) {
+			isDataOnly = true;
+			return isDataOnly;
+		}
+		else if (DataType == 1684108385) { //Big Endian "data" in ASCII
 			isDataOnly = true;
 			return isDataOnly;
 		}
