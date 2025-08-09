@@ -1,0 +1,326 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: .vdat
+//   Authors: SolarCookies
+//   Version: 0.1
+//   Purpose: Reverse Viva Pinata Models
+//  Category: Modding
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+//BigEndian(); //Enable if its a TIP model
+
+
+local int visitedOffsets[1024];
+local int visitedCount = 0;
+        
+int AlreadyVisited(int offset) {
+    for (int i = 0; i < visitedCount; i++) {
+        if (visitedOffsets[i] == offset){
+            return 1;
+        }
+    }
+    return 0;
+}
+        
+void MarkVisited(int offset) {
+    visitedOffsets[visitedCount++] = offset;
+}
+
+
+
+local int offsetsToVisit[1024];
+local int offsetCount = 0;
+        
+void AddOffsetToVisit(int offset) {
+    if (offset != 0 && !AlreadyVisited(offset)) {
+        offsetsToVisit[offsetCount++] = offset;
+        MarkVisited(offset);
+    }
+}
+
+
+struct ModelHeader{
+    int HeaderOffset;
+    int NumOfEntrys;
+    int unk1;
+    int unk2;
+    int unk3;
+} modelHeader <bgcolor=cLtGreen>;
+
+local struct EntryType{
+    int ID;
+    int Offset;
+};
+
+struct ModelFooter{
+    EntryType Entry;
+} modelFooter[modelHeader.NumOfEntrys] <optimize=true,pos=modelHeader.HeaderOffset, bgcolor=cLtYellow>;
+
+for (int i = 0; i < modelHeader.NumOfEntrys; i++) { 
+    
+    if(i > sizeof(modelFooter) / sizeof(modelFooter[0])){
+        continue;
+    }
+    
+    // RENDERGRAPH
+    if(modelFooter[i].Entry.ID == 0){ 
+        struct RenderMan{
+            int ModelInfoOffset;
+            int Unk1;
+            int Unk2;
+            int Unk3;
+            int TextureNamesOffset;
+            int TextureMapsOffset;
+            int NumberOfTextures;
+            int unk5;
+            int morphTargetTableOffset;
+            int morphTargetTableCount;
+            int inputDefinition1TableOffset;
+            int inputDefinition1TableNumber;
+            int inputDefinitionSize;
+            int inputDefinition2TableOffset;
+            int inputDefinition2TableNumber;
+            int unk10;
+            int shadowMapNames;
+            int NumberOfshadowMaps;
+            int unk13;
+            int unk14; //Offset
+            int unk14Count;
+            int unk16; //Offset
+            int unk16Count;
+            int unk17;
+            int unk18;
+            int unk19;
+            int unk20;
+            int unk21;
+            int unk22;
+            int unk23;
+            int unk24;
+            int unk25;
+            int unk26;
+            int unk27;
+            int unk28;
+            int unk29;
+            float unk30;
+            float unk31;
+            int unk32;
+        } renderman <pos=modelFooter[i].Entry.Offset, bgcolor=cLtRed>;
+        
+        //Texture Names
+        if(renderman.TextureNamesOffset != 0){
+            struct TextureNamesOffsetEntry {
+                int TextureOffset;
+            } textureNamesOffsetEntry[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureNamesOffset, bgcolor=cLtBlue>;
+            
+            local string name1;
+            
+            for (int i = 0; i < renderman.NumberOfTextures; i++) {
+                if(textureNamesOffsetEntry[i].TextureOffset != 0){
+                    
+                    SPrintf(name1, "TextureName%d", i);
+                    
+                    struct TextureNameStruct {
+                        char TextureName[128] <bgcolor=cLtGreen>;
+                    } textureNameStruct <name=name1, pos=textureNamesOffsetEntry[i].TextureOffset>;
+                }
+            }
+        }
+        
+        //Texture Maps
+        if(renderman.TextureMapsOffset != 0){
+            struct TextureMapTable{
+                int TextureMapOffset;
+            } textureMapTable[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureMapsOffset, bgcolor=cLtBlue>;
+            
+            
+            for (int i = 0; i < renderman.NumberOfTextures; i++) {
+                struct TextureMaps {
+                    string TextureMap <bgcolor=cLtGreen>;
+                } textureMaps <name="TextureMapNames",pos=textureMapTable[i].TextureMapOffset>;
+            }
+        }
+        
+        // Input Definitions
+        struct InputDefinitions1{
+            char InputDefinitionType1[renderman.inputDefinitionSize] <bgcolor=cLtYellow,optimize=true>;
+        }inputdefinitions1[renderman.inputDefinition1TableNumber] <optimize=true,pos=renderman.inputDefinition1TableOffset>;
+        
+        struct InputDefinitions2{
+            char InputDefinitionType2[renderman.inputDefinitionSize] <bgcolor=cLtGreen,optimize=true>;
+        }inputdefinitions2[renderman.inputDefinition2TableNumber] <optimize=true,pos=renderman.inputDefinition2TableOffset>;
+        
+        //Shadow Maps
+        struct ShadowMapNamesOffsetEntry {
+            int ShadowMapOffset;
+        } shadowmapnamesOffsetEntry[renderman.NumberOfshadowMaps] <optimize=true,pos=renderman.shadowMapNames, bgcolor=cLtBlue>;
+        
+        for (int i = 0; i < renderman.NumberOfshadowMaps; i++) {
+            struct ShadowMapNames {
+                string ShadowMapName <bgcolor=cLtGreen>;
+            } shadowMapName <name="ShadowMapNames",pos=shadowmapnamesOffsetEntry[i].ShadowMapOffset>;
+        }
+        
+        //Unk16
+        if(renderman.unk16 != 0){
+            struct Unk16{
+                char UnkChunk[72] <bgcolor=cPurple>;
+            } unk16[renderman.unk16Count] <optimize=true,pos=renderman.unk16>;
+        }
+        
+        //Unk14
+        struct Unk14OffsetEntry {
+            int Unk14Offset;
+        } unk14OffsetEntry[renderman.unk14Count] <optimize=true,pos=renderman.unk14, bgcolor=cLtBlue>;
+        
+        for (int i = 0; i < renderman.unk14Count; i++) {
+            struct Unk14 {
+                string Unk14String <bgcolor=cLtGreen>;
+            } unk14 <name="Unk14Strings",pos=unk14OffsetEntry[i].Unk14Offset>;
+        }
+        
+        // Entries typically follow after this header, their contents depend on the type.
+        // Type 0 doesn't contain anything after it.
+        // Type 1 is presumably the model definition.
+        // Type 2 is vertice information.
+        // Type 3 is unknown.
+        // Type 4 is unknown.
+        // Type 5 is unknown for purpose, contains a base size of 8 bytes, followed by several 2 byte entries.
+        // Type 6 and Type 7 is indice information.
+        local struct ModelInfo {
+            uint8 Type;
+            uint8 Flag2;
+            uint8 Flag3;
+            uint8 ID;
+            int NextOffset;
+            int AdditonalOffset;
+            int LastOffset;
+        };
+        struct ModelVertDef
+        {
+            short unk1;
+            short unk2;
+            int unk3;
+            int vertexCount;
+            int dataOffset;
+            int vertexOffset;
+            int vertTableLength;
+            short entrySize;
+            short unk5;
+        };
+        
+        struct ModelIndicesDef
+        {
+            int unk1;
+        
+            // Not entirely sure about this, as some models load the indices fine and others don't.
+            int IndicesSize;
+            int IndicesCount;
+            int unk4;
+            int IndicesCount2;
+            int unk6;
+            int IndicesOffset;
+            char unk7[28];
+            int IndicesOffset2;
+            int IndicesOffset3;
+        };
+
+        
+        AddOffsetToVisit(renderman.ModelInfoOffset);
+        
+        local int currentOffset;
+        local int LocalOffset;
+        //Main Model Traversal Loop
+        while (offsetCount > 0) {
+            currentOffset = offsetsToVisit[--offsetCount];
+            uint8 tmpType <pos=currentOffset>;
+            FSeek(currentOffset);
+            ModelInfo mi <pos=currentOffset, bgcolor=GetModelInfoTypeColor(mi.Type)>;
+            LocalOffset = currentOffset + 16;
+            if(mi.Type == 2){
+              ModelVertDef vert <pos=LocalOffset, bgcolor=cLtRed>;
+            }else if(mi.Type == 6 || mi.Type == 7){
+              ModelIndicesDef indices <pos=LocalOffset, bgcolor=cLtBlue>;
+            }
+            
+            // Queue both Next and Additional offsets
+            AddOffsetToVisit(mi.NextOffset);
+            AddOffsetToVisit(mi.AdditonalOffset);
+        }
+    }
+    if(modelFooter[i].Entry.ID == 24){
+        struct UnkEntry2{
+            int SomeSortOfOffset;
+            float MaybeFloat;
+        } unkEntry2 <pos=modelFooter[i].Entry.Offset,bgcolor=cBlue>;
+    }
+    if(modelFooter[i].Entry.ID == 5){
+        struct UnkEntry3{
+            char Data[64] <bgcolor=cGray>;
+        } unkEntry3 <pos=modelFooter[i].Entry.Offset>;
+    }
+    if(modelFooter[i].Entry.ID == 4){
+        struct UnkEntry4{
+            char Data[72] <bgcolor=cYellow>;
+        } unkEntry4 <pos=modelFooter[i].Entry.Offset>;
+    }
+    if(modelFooter[i].Entry.ID == 2){
+        int Entry2Count <bgcolor=cLtBlue,pos=modelFooter[i].Entry.Offset>;
+        local int EntrysOffset = modelFooter[i].Entry.Offset + 4;
+        struct UnkEntry5{
+            char Data[52] <bgcolor=cPurple>;
+        } unkEntry5[Entry2Count] <optimize=true,pos=EntrysOffset>;
+    }
+    if(modelFooter[i].Entry.ID == 8){
+        struct UnkEntry1{
+            char Data[76] <bgcolor=cWhite>;
+        } unkEntry1 <pos=modelFooter[i].Entry.Offset>;
+    }
+    //Printf( "%d\n", modelFooter[i].Entry.ID );
+}
+
+// Entries typically follow after this header, their contents depend on the type.
+// Type 0 doesn't contain anything after it.
+// Type 1 is presumably the model definition.
+// Type 2 is vertice information.
+// Type 3 is unknown.
+// Type 4 is unknown.
+// Type 5 is unknown for purpose, contains a base size of 8 bytes, followed by several 2 byte entries.
+// Type 6 and Type 7 is indice information.
+string GetModelInfoTypeName(uint8 &Type,int Offset){
+    local string result = "Test";
+    switch(Type){
+       case 0  : result = "Empty"; break;
+       case 1  : result = "Model Definition"; break;
+       case 2  : result = "Vertice Information"; break;
+       case 3  : result = "Unknown Type"; break;
+       case 4  : result = "Unknown Type"; break;
+       case 5  : result = "Unknown Type"; break;
+       case 6  : result = "Indice Information"; break;
+       case 7  : result = "Indice Information"; break;
+       default : result = "Unknown Type";
+    }
+    //AppendWithCurrentOffset
+    local string outStr;
+    SPrintf(outStr, "%04d", Offset);
+    result = result+" "+ outStr;
+    return result;
+}
+int GetModelInfoTypeColor(uint8 &Type){
+    local int result = cWhite;
+    switch(Type){
+       case 0  : result = cBlack; break;
+       case 1  : result = cWhite; break;
+       case 2  : result = cRed; break;
+       case 3  : result = cGray; break;
+       case 4  : result = cGray; break;
+       case 5  : result = cGray; break;
+       case 6  : result = cBlue; break;
+       case 7  : result = cBlue; break;
+       default : result = cGray;
+    }
+    return result;
+}

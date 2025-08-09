@@ -354,7 +354,7 @@ public:
 												//return;
 											}
 										}
-										if (chunk->Type == FileType::RawImage) {
+										if (true) {//chunk->Type == FileType::RawImage
 											if (ImGui::Button("View Raw Image")) {
 												std::ifstream file(pkg.path, std::ios::binary);
 												//Get both VDAT and VGPU

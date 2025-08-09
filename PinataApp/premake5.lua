@@ -34,7 +34,7 @@ project "PinataApp"
 
    filter "system:windows"
       systemversion "latest"
-      defines { "WL_PLATFORM_WINDOWS" }
+      defines { "WL_PLATFORM_WINDOWS", "NOMINMAX"}
       buildoptions { "/openmp" } -- Enable OpenMP for MSVC
       buildoptions { "-DVCPKG_DISABLE" } -- Disable vcpkg integration
 

@@ -4,6 +4,9 @@
 #include "../Utils/ZLibHelpers.h"
 #include "../Utils/OpenFileDialog.h"
 #include "../Utils/Log.hpp"
+#include "../Utils/half.hpp"
+
+using half_float::half;
 
 float byteswap_float(float value) {
     uint32_t temp_int;
@@ -16,10 +19,34 @@ float byteswap_float(float value) {
     std::memcpy(&result, &temp_int, sizeof(float));
     return result;
 }
+half byteswap_half(half value) {
+    uint16_t temp_int;
+    // Copy the half's bytes to an integer of the same size
+    std::memcpy(&temp_int, &value, sizeof(half));
+    // Byteswap the integer
+    temp_int = _byteswap_ushort(temp_int);
+    half result;
+    // Copy the bytes back to a half
+    std::memcpy(&result, &temp_int, sizeof(half));
+    return result;
+}
 
-struct Vertex1 {
+struct Vector3 {
     float x, y, z;
 };
+struct Vector2 {
+    float u, v;
+};
+struct LowVector2 {
+	half u, v; // 4 bytes total
+};
+
+struct Vertex1 {
+	Vector3 position; // 12 bytes
+	Vector3 normal; // 12 bytes
+	Vector2 texCoord; // 8 bytes
+};
+
 
 void exportOBJ(std::vector<Vertex1> verts, std::vector<uint32_t> indices, std::string& filename)
 {
@@ -30,16 +57,33 @@ void exportOBJ(std::vector<Vertex1> verts, std::vector<uint32_t> indices, std::s
 
     // Write vertex positions
     for (const auto& v : verts) {
-        file << "v " << v.x << " " << v.y << " " << v.z << "\n";
+        file << "v " << v.position.x << " " << v.position.y << " " << v.position.z << "\n";
     }
+
+	// Write vertex normals
+    for (const auto& v : verts) {
+        file << "vn " << v.normal.x << " " << v.normal.y << " " << v.normal.z << "\n";
+	}
+	// Write texture coordinates
+    for (const auto& v : verts) {
+        file << "vt " << v.texCoord.u << " " << v.texCoord.v << "\n";
+	}
 
     // Write faces (OBJ is 1-based indexing)
     for (size_t i = 0; i < indices.size(); i += 3) {
-        file << "f "
-            << indices[i] + 1 << " "
-            << indices[i + 1] + 1 << " "
-            << indices[i + 2] + 1 << "\n";
+        if (i + 2 < indices.size()) {
+            uint32_t i1 = indices[i] + 1;
+            uint32_t i2 = indices[i + 1] + 1;
+            uint32_t i3 = indices[i + 2] + 1;
+
+            // Position/UV/Normal — assuming they share the same index
+            file << "f "
+                << i1 << "/" << i1 << "/" << i1 << " "
+                << i2 << "/" << i2 << "/" << i2 << " "
+                << i3 << "/" << i3 << "/" << i3 << "\n";
+        }
     }
+	file.close();
 }
 
 
@@ -381,21 +425,158 @@ static inline void ExportModel(BYTES VDAT, BYTES VGPU, std::string Path, bool Bi
 		vertexData.resize(mb.VertDef.vertexCount * mb.VertDef.entrySize);
         memcpy(vertexData.data(), &VGPU[mb.VertDef.vertexOffset], mb.VertDef.vertexCount * mb.VertDef.entrySize);
 
+
+
         for(uint32_t i = 0; i < mb.VertDef.vertexCount; i++) {
             Vertex1 v;
-		    memcpy(&v, &vertexData[i * mb.VertDef.entrySize], sizeof(Vertex1));
+			Vector3 pos, norm;
+            Vector2 uv;
+			memcpy(&pos, &vertexData[i * mb.VertDef.entrySize], sizeof(Vector3)); // Read position (Always at the start of the entry)
 
             if(BigEndian) {
-                v.x = byteswap_float(v.x);
-                v.y = byteswap_float(v.y);
-                v.z = byteswap_float(v.z);
+                pos.x = byteswap_float(pos.x);
+                pos.y = byteswap_float(pos.y);
+                pos.z = byteswap_float(pos.z);
 			}
+
+			v.position = pos;
+
+            if(mb.VertDef.entrySize == 76) {
+                memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+                if(BigEndian) {
+                    norm.x = byteswap_float(norm.x);
+                    norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+				}
+                v.normal = norm;
+                memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+                if(BigEndian) {
+                    uv.u = byteswap_float(uv.u);
+					uv.v = byteswap_float(uv.v);
+                }
+                v.texCoord = uv;
+            } else if(mb.VertDef.entrySize == 60) {
+                memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+                if(BigEndian) {
+                    norm.x = byteswap_float(norm.x);
+					norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+                }
+                v.normal = norm;
+                memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+                if(BigEndian) {
+					uv.u = byteswap_float(uv.u);
+					uv.v = byteswap_float(uv.v);
+                }
+                v.texCoord = uv;
+            } else if(mb.VertDef.entrySize == 56) {
+                memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+				if (BigEndian) {
+					norm.x = byteswap_float(norm.x);
+					norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+                }
+                v.normal = norm;
+				memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+				if (BigEndian) {
+					uv.u = byteswap_float(uv.u);
+					uv.v = byteswap_float(uv.v);
+                    }
+                v.texCoord = uv;
+            } else if(mb.VertDef.entrySize == 38) {
+				memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+				if (BigEndian) {
+					norm.x = byteswap_float(norm.x);
+					norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+                }
+				v.normal = norm;
+				memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+				if (BigEndian) {
+					uv.u = byteswap_float(uv.u);
+                    uv.v = byteswap_float(uv.v);
+				}
+				v.texCoord = uv;
+			}
+			else if (mb.VertDef.entrySize == 36) {
+				memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+				if (BigEndian) {
+					norm.x = byteswap_float(norm.x);
+					norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+				}
+				v.normal = norm;
+				memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+				if (BigEndian) {
+					uv.u = byteswap_float(uv.u);
+					uv.v = byteswap_float(uv.v);
+				}
+				v.texCoord = uv;    
+			}
+			else if (mb.VertDef.entrySize == 44) {
+				memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+				if (BigEndian) {
+					norm.x = byteswap_float(norm.x);
+					norm.y = byteswap_float(norm.y);
+					norm.z = byteswap_float(norm.z);
+				}
+				v.normal = norm;
+				memcpy(&uv, &vertexData[i * mb.VertDef.entrySize + 24], sizeof(Vector2)); // Read UV (24 bytes after position)
+				if (BigEndian) {
+					uv.u = byteswap_float(uv.u);
+					uv.v = byteswap_float(uv.v);
+				}
+				v.texCoord = uv;
+			}
+            else if (mb.VertDef.entrySize == 48) {
+                memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+                if (BigEndian) {
+                    norm.x = byteswap_float(norm.x);
+                    norm.y = byteswap_float(norm.y);
+                    norm.z = byteswap_float(norm.z);
+                }
+                v.normal = norm;
+
+                LowVector2 luv;
+
+				memcpy(&luv, &vertexData[i * mb.VertDef.entrySize + 28], sizeof(LowVector2)); // Read UV (28 bytes after position) (Stored as 2 16 bit floats)
+                if (BigEndian) {
+                    luv.u = byteswap_half(luv.u);
+                    luv.v = byteswap_half(luv.v);
+				}
+				uv.u = static_cast<float>(luv.u); // Convert to float
+				uv.v = static_cast<float>(luv.v); // Convert to float
+                v.texCoord = uv;
+            }
+            else if (mb.VertDef.entrySize == 52) {
+                memcpy(&norm, &vertexData[i * mb.VertDef.entrySize + 12], sizeof(Vector3)); // Read normal (12 bytes after position)
+                if (BigEndian) {
+                    norm.x = byteswap_float(norm.x);
+                    norm.y = byteswap_float(norm.y);
+                    norm.z = byteswap_float(norm.z);
+                }
+                v.normal = norm;
+
+                LowVector2 luv;
+
+                memcpy(&luv, &vertexData[i * mb.VertDef.entrySize + 32], sizeof(LowVector2)); // Read UV (28 bytes after position) (Stored as 2 16 bit floats)
+                if (BigEndian) {
+                    luv.u = byteswap_half(luv.u);
+                    luv.v = byteswap_half(luv.v);
+                }
+                uv.u = static_cast<float>(luv.u); // Convert to float
+                uv.v = static_cast<float>(luv.v); // Convert to float
+                v.texCoord = uv;
+                }
+			
 
             vertices1[i] = v;
 	    }
 
 		Log("Vert offset: " + std::to_string(mb.VertDef.vertexOffset), EType::PURPLE);
-		Log("Vertex count: " + std::to_string(mb.VertDef.vertexCount), EType::PURPLE);
+		Log("Vertex count: " + std::to_string(mb.VertDef.vertexCount), EType::Warning);
+		Log("Entry size: " + std::to_string(mb.VertDef.entrySize), EType::BLUE);
+		Log("Model Index: " + std::to_string(y), EType::GREEN);
 
         int IndicesOffset = 0;
         if(mb.IndiceDef.IndicesOffset != 0) {
@@ -471,8 +652,7 @@ static inline void ExportModel(BYTES VDAT, BYTES VGPU, std::string Path, bool Bi
         }
 			
 		exportOBJ(vertices1, indices1, desktopPath + "/model_" + std::to_string(y) + ".obj");
-
-        
+		
         y++;
     }
 }
