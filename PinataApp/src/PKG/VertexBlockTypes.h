@@ -87,8 +87,41 @@ inline VertexBlock ConstructVertexBlockFromSize(int size, bool bigEndian, vBYTES
 		if( size == 76) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
 		}
-		else if (size == 48) {
+		else if (size == 72) {
+			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+		}
+		else if (size == 68) {
+			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+		}
+		else if (size == 64) {
+			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+		}
+		else if (size == 60) {
+			memcpy(&Vert.texCoord, &block[40], sizeof(Vector2));
+		}
+		else if (size == 56) {
+			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+		}
+		else if (size == 52) {
 			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2));
+		}
+		else if (size == 48) {
+			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2)); // maybe sometimes 20?
+		}
+		else if (size == 44) {
+			memcpy(&Vert.texCoord, &block[20], sizeof(Vector2));
+		}
+		else if (size == 40) {
+			//No UVs
+		}
+		else if (size == 36) {
+			memcpy(&Vert.texCoord, &block[20], sizeof(Vector2));
+		}
+		else if (size == 34) {
+			memcpy(&Vert.texCoord, &block[24], sizeof(Vector2));
+		}
+		else if (size == 32) {
+			//No UVs
 		}
 	}
 
