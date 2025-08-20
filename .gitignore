@@ -14,3 +14,5 @@ bin-int/
 *.pkg
 *.dds
 PinataApp/temp.PNG
+PinataApp/settings.ini
+PinataApp/imgui.ini
