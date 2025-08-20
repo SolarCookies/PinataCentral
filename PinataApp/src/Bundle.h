@@ -6,7 +6,7 @@
 
 namespace Bundle {
 
-	BYTES CAFFBYTES;
+	vBYTES CAFFBYTES;
 	CAFF caff;
 
 	void read(std::string path) {
@@ -32,7 +32,7 @@ namespace Bundle {
 				std::cout << "Failed to read file: " << path << std::endl;
 				return;
 			}
-			CAFFBYTES = BYTES(buffer.begin(), buffer.end());
+			CAFFBYTES = vBYTES(buffer.begin(), buffer.end());
 
 			//Bundles are little endian
 			caff = caff::Read_Header(CAFFBYTES);
@@ -45,7 +45,7 @@ namespace Bundle {
 			std::cout << "CAFF " << 1 << " VLUT Uncompressed Size: " << caff.VLUT_Uncompressed_Size << std::endl;
 			std::cout << "CAFF " << 1 << " VLUT Compressed Size: " << caff.VLUT_Compressed_Size << std::endl;
 
-			BYTES VREFB = caff::Get_VREF(CAFFBYTES, caff);
+			vBYTES VREFB = caff::Get_VREF(CAFFBYTES, caff);
 
 			//Debug pack is Big Endian initially with the CAFF header, however the vref is little endian
 			VREF vref = caff::Read_VREF(VREFB, caff, caff.IsBigEndian);

@@ -3,11 +3,10 @@
 #include <vector>
 #include <imgui.h>
 
-using namespace std;
 
 // Add a Array of strings
-inline static vector<string> Logs;
-inline static vector<string> Keys;
+inline static std::vector<std::string> Logs = {};
+inline static std::vector<std::string> Keys = {};
 
 inline static bool ForceDown = false;
 inline static int ForceDownCounter = 0; //Used to delay the force down by 1 frame to make sure the log is drawn before scrolling down
@@ -27,7 +26,7 @@ static enum EType {
 //Logs a Int
 inline static void Log(int i)
 {
-	Logs.push_back(to_string(i));
+	Logs.push_back(std::to_string(i));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
@@ -35,7 +34,7 @@ inline static void Log(int i)
 //Logs a uint32_t
 inline static void Log(uint32_t i)
 {
-	Logs.push_back(to_string(i));
+	Logs.push_back(std::to_string(i));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
@@ -43,49 +42,49 @@ inline static void Log(uint32_t i)
 //Logs a Float
 inline static void Log(float f)
 {
-	Logs.push_back(to_string(f));
+	Logs.push_back(std::to_string(f));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 //Logs a Double
 inline static void Log(double d)
 {
-	Logs.push_back(to_string(d));
+	Logs.push_back(std::to_string(d));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 //Logs a Bool
 inline static void Log(bool b)
 {
-	Logs.push_back(to_string(b));
+	Logs.push_back(std::to_string(b));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 //Logs a Char
 inline static void Log(char c)
 {
-	Logs.push_back(to_string(c));
+	Logs.push_back(std::to_string(c));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 //Logs a ImGui Vector2
 inline static void Log(ImVec2 v)
 {
-	Logs.push_back("X: " + to_string(v.x) + " Y: " + to_string(v.y));
+	Logs.push_back("X: " + std::to_string(v.x) + " Y: " + std::to_string(v.y));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 //Logs a ImGui Vector3
 inline static void Log(ImVec4 v)
 {
-	Logs.push_back("X: " + to_string(v.x) + " Y: " + to_string(v.y) + " Z: " + to_string(v.z));
+	Logs.push_back("X: " + std::to_string(v.x) + " Y: " + std::to_string(v.y) + " Z: " + std::to_string(v.z));
 	Keys.push_back(" ");
 	ForceDown = true;
 }
 
 inline static void Log(std::vector<unsigned char> Bytes)
 {
-	string str = "";
+	std::string str = "";
 	for (int i = 0; i < Bytes.size(); i++)
 	{
 		//use mod to add a space every 4 bytes
@@ -93,7 +92,7 @@ inline static void Log(std::vector<unsigned char> Bytes)
 			str += " | ";
 		}
 		//format the byte to hex numbers and letters
-		str += " " + to_string(Bytes[i] >> 4) + to_string(Bytes[i] & 0xF);
+		str += " " + std::to_string(Bytes[i] >> 4) + std::to_string(Bytes[i] & 0xF);
 	}
 	Logs.push_back(str);
 	Keys.push_back("PURPLE");
@@ -168,7 +167,7 @@ inline static void RemoveFromLog(int i)
 }
 
 //Uses a Key to only make sure item is logged once (Useful for logging values that change every frame)
-inline static void KeyLogString(string Key, string Value)
+inline static void KeyLogString(std::string Key, std::string Value)
 {
 	bool Found = false;
 
@@ -197,7 +196,7 @@ inline static void KeyLogString(string Key, string Value)
 
 
 //Logs a String
-inline static void Log(string str, EType Type)
+inline static void Log(std::string str, EType Type)
 {
 	switch (Type)
 	{

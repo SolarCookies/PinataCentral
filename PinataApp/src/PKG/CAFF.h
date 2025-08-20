@@ -57,16 +57,16 @@ struct ChunkInfo {
 	uint32_t ID = 0;
 	uint32_t VDAT_Offset = 0;
 	uint32_t VDAT_Size = 0;
-	BYTE VDAT_File_Data_1 = 0;
-	BYTE VDAT_File_Data_2 = 0;
+	vBYTE VDAT_File_Data_1 = 0;
+	vBYTE VDAT_File_Data_2 = 0;
 	bool HasVGPU = false;
 	uint32_t VGPU_Offset = 0;
 	uint32_t VGPU_Size = 0;
-	BYTE VGPU_File_Data_1 = 0;
-	BYTE VGPU_File_Data_2 = 0;
+	vBYTE VGPU_File_Data_1 = 0;
+	vBYTE VGPU_File_Data_2 = 0;
 	ChunkInfoOffsets OffsetLocations;
 	FileType Type = FileType::Unknown;
-	BYTE DebugData = 0; //Used for debugging when checking if a offset is correct
+	vBYTE DebugData = 0; //Used for debugging when checking if a offset is correct
 };
 
 struct VREF {
@@ -87,7 +87,7 @@ struct VREF {
 namespace caff {
 
 	//Reads CAFF Header when given CAFF bytes (At least the first 120 bytes as that is the header) but you can pass in the full CAFF
-	CAFF Read_Header(BYTES CAFFBYTES) {
+	inline static CAFF Read_Header(vBYTES CAFFBYTES) {
 		CAFF caff;
 		caff.CAFF_Version = Zlib::ConvertBytesToString(Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, 0, 17));
 
@@ -112,21 +112,21 @@ namespace caff {
 	}
 
 	//Gets the VREF Bytes from the CAFF (Works with compressed and uncompressed CAFFs)
-	BYTES Get_VREF(BYTES& CAFFBYTES, CAFF& caff) {
+	inline static vBYTES Get_VREF(vBYTES& CAFFBYTES, CAFF& caff) {
 
 		//Some CAFFs are uncompressed, when this is the case the Compressed size is = to the uncompressed size
 		if (caff.VREF_Compressed_Size == 0 || caff.VREF_Compressed_Size == caff.VREF_Uncompressed_Size) {
-			BYTES VREF = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, caff.VREF_Offset, caff.VREF_Uncompressed_Size);
+			vBYTES VREF = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, caff.VREF_Offset, caff.VREF_Uncompressed_Size);
 			return VREF;
 		}
 
 		//The caff seems to be compressed, so we need to decompress it using zlib
-		BYTES VREFCompressed = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, caff.VREF_Offset, caff.VREF_Compressed_Size);
-		BYTES VREF = Zlib::DecompressData(VREFCompressed, caff.VREF_Uncompressed_Size);
+		vBYTES VREFCompressed = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, caff.VREF_Offset, caff.VREF_Compressed_Size);
+		vBYTES VREF = Zlib::DecompressData(VREFCompressed, caff.VREF_Uncompressed_Size);
 		return VREF;
 	}
 
-	bool VREFTypeCheck(BYTES& VREF) {
+	inline static bool VREFTypeCheck(vBYTES& VREF) {
 		bool isDataOnly = false;
 
 		//Data would be "1635017060" in little endian because it is "data" in ASCII
@@ -146,7 +146,7 @@ namespace caff {
 	}
 
 	//Reads the VREF chunk info and fills the VREF struct with the chunk names and chunk info
-	void Read_VREF_Chunks(BYTES& VREFBYTES, CAFF& caff, VREF& vref, bool BigEndian) {
+	inline static void Read_VREF_Chunks(vBYTES& VREFBYTES, CAFF& caff, VREF& vref, bool BigEndian) {
 
 		uint32_t offset;
 
@@ -163,7 +163,7 @@ namespace caff {
 		uint32_t ChunkNameoffset;
 		uint32_t NextChunkNameoffset;
 		uint32_t NameSize;
-		BYTES ChunkName;
+		vBYTES ChunkName;
 
 		//for each chunk we get the name by getting the offset to the name and then getting the name from the name block
 		for (int i = 0; i <= (caff.ChunkCount - 1); i++) {
@@ -256,7 +256,7 @@ namespace caff {
 	}
 
 	//Reads the VREF Header and Chunk infos
-	VREF Read_VREF(BYTES& VREFBYTES, CAFF& caff, bool BigEndian) {
+	inline static VREF Read_VREF(vBYTES& VREFBYTES, CAFF& caff, bool BigEndian) {
 		VREF vref;
 
 		vref.VDAT_Uncompressed_Size = Zlib::ConvertBytesToInt(VREFBYTES, 9, BigEndian);

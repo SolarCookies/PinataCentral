@@ -50,7 +50,7 @@ namespace Walnut
 
 		};
 
-		inline static bool AskSaveFile(BYTES& Data, std::string Filename) {
+		inline static bool AskSaveFile(vBYTES& Data, std::string Filename) {
 			//get file extension from end of filename
 			std::string extension = Filename.substr(Filename.find_last_of(".") + 1);
 			//convert to char*
@@ -88,7 +88,7 @@ namespace Walnut
 		}
 
 		//Writes a file to a specified path, if the path does not exist it will create it
-		inline static void WriteFile(std::string& Path, std::string& Filename, BYTES& Data) {
+		inline static void WriteFile(std::string& Path, std::string& Filename, vBYTES& Data) {
 			if (!std::filesystem::create_directories(Path) && !std::filesystem::exists(Path)) {
 				//  Log("Cannot create path \\" + Path + "\\", Error);
 				std::cout << "Cannot create path \\" << Path << "\\";
@@ -211,13 +211,13 @@ namespace Walnut
 		}
 
 		//Reads 'Size' Bytes at 'Offset' then restores the seek position
-		inline static BYTES Read_Bytes(std::ifstream& Stream, uint32_t Offset, uint32_t Size) {
+		inline static vBYTES Read_Bytes(std::ifstream& Stream, uint32_t Offset, uint32_t Size) {
 			//Save current position
 			uint32_t CurrentPosition = Stream.tellg();
 			//Seek to offset
 			SeekBeg(Stream, Offset);
 			//Read Bytes
-			BYTES Data(Size);
+			vBYTES Data(Size);
 			Stream.read(reinterpret_cast<char*>(Data.data()), Size);
 			//Restore position
 			SeekBeg(Stream, CurrentPosition);
@@ -226,16 +226,16 @@ namespace Walnut
 		}
 
 		//Reads bytes from current file position
-		inline static BYTES Read_Bytes(std::ifstream& Stream, uint32_t Size) {
-			BYTES Data(Size);
+		inline static vBYTES Read_Bytes(std::ifstream& Stream, uint32_t Size) {
+			vBYTES Data(Size);
 			Stream.read(reinterpret_cast<char*>(Data.data()), Size);
 			//forward offset by size
 			//SeekCur(Stream, Size);
 			return Data;
 		}
 
-		inline static BYTES CopyBytes(BYTES& Data, uint32_t StartOffset, uint32_t Length) {
-			BYTES Result;
+		inline static vBYTES CopyBytes(vBYTES& Data, uint32_t StartOffset, uint32_t Length) {
+			vBYTES Result;
 			for (int i = StartOffset; i < StartOffset + Length; i++) {
 				if (Data.size() > i) {
 					Result.push_back(Data[i]);
@@ -244,8 +244,8 @@ namespace Walnut
 			return Result;
 		}
 
-		inline static void SetIntAtOffset(BYTES& Data, uint32_t Offset, uint32_t Value, bool BigEndian) {
-			BYTES IntBytes = Zlib::ConvertIntToBytes(Value, BigEndian);
+		inline static void SetIntAtOffset(vBYTES& Data, uint32_t Offset, uint32_t Value, bool BigEndian) {
+			vBYTES IntBytes = Zlib::ConvertIntToBytes(Value, BigEndian);
 			for (int i = 0; i < 4; i++) {
 				Data[Offset + i] = IntBytes[i];
 				//std::cout << "Byte: " << i << " Value: " << (int)IntBytes[i] << std::endl;

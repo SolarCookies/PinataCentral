@@ -7,7 +7,7 @@
 
 namespace debug_pack {
 
-	std::vector<BYTES> CAFFS;
+	std::vector<vBYTES> CAFFS;
 
 	void read(std::string path) {
 		//check if file exists
@@ -50,7 +50,7 @@ namespace debug_pack {
 			for (size_t i = 0; i < marker_positions.size(); ++i) {
 				size_t start = marker_positions[i];
 				size_t end = (i + 1 < marker_positions.size()) ? marker_positions[i + 1] : buffer.size();
-				BYTES segment(buffer.begin() + start, buffer.begin() + end);
+				vBYTES segment(buffer.begin() + start, buffer.begin() + end);
 				CAFFS.push_back(segment);
 			}
 			int caffNumber = CAFFS.size() - 1;
@@ -66,7 +66,7 @@ namespace debug_pack {
 			std::cout << "CAFF " << caffNumber << " VLUT Uncompressed Size: " << caff.VLUT_Uncompressed_Size << std::endl;
 			std::cout << "CAFF " << caffNumber << " VLUT Compressed Size: " << caff.VLUT_Compressed_Size << std::endl;
 
-			BYTES VREFB = caff::Get_VREF(CAFFS[caffNumber], caff);
+			vBYTES VREFB = caff::Get_VREF(CAFFS[caffNumber], caff);
 
 			//Debug pack is Big Endian initially with the CAFF header, however the vref is little endian
 			VREF vref = caff::Read_VREF(VREFB, caff, caff.IsBigEndian);

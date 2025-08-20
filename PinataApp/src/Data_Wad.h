@@ -46,7 +46,7 @@ namespace Data_Wad {
 					<< " - Checksum: " << entries[i].Checksum
 					<< ", Offset: " << entries[i].Offset << std::endl;
 
-				BYTES entryData;
+				vBYTES entryData;
 				// Read the data for each entry by using the offset of the next entry or the end of the file
 				if (i < entryCount - 1) {
 					file.seekg(entries[i].Offset, std::ios::beg);

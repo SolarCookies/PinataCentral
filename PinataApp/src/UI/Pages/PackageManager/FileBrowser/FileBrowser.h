@@ -3,15 +3,13 @@
 #include "imgui.h"
 #include "Walnut/Application.h"
 
-#include "../../PKG/pkg.h"
-#include "../../Utils/ini.h"
-#include "../imgui_memory_editor.h"
+#include "../../../../PKG/pkg.h"
+#include "imgui_memory_editor.h"
 #include <vulkan/vulkan.h>
-#include "../../Utils/dds.hpp"
+#include "../../../../Utils/dds.hpp"
 #include <filesystem>
-#include "omp.h"
-#include "../../UI/DataWindows/DataSettingsWindow.h"
-#include "../../PKG/OGModel.h"
+#include "../../../../PKG/OGModel.h"
+#include "../../../../GlobalSettings.h"
 
 #include <random>
 
@@ -25,22 +23,21 @@ enum class RenderMode
 class FileBrowser
 {
 public:
+	char Bundlepath[255] = { 0 };
+
 	FileBrowser() {
-		//load settings from settings.ini
-		if (Walnut::OpenFileDialog::FileExists(iniPath))
-		{
-			mINI::INIFile file(iniPath);
-			mINI::INIStructure ini;
-			file.read(ini);
-			strcpy_s(Bundlepath, ini["Settings"]["Path"].c_str());
+		LoadSettings();
+		for(int i = 0; i < 255; i++) {
+			Bundlepath[i] = '\0';
 		}
-		else {
+		for(int i = 0; i < PackagesDicrectory.length(); i++) {
+			Bundlepath[i] = PackagesDicrectory[i];
 		}
 	};
 	~FileBrowser() {
 	};
+	
 
-	vector<DataSettingsWindow*>* m_DataSettingsWindows_PTR;
 
 	std::string CurrentPKG = "";
 	PKG pkg;
@@ -57,10 +54,6 @@ public:
 	char Searchbuf[255]{};
 	std::string SearchTerm = "";
 
-	//Settings.ini location
-	std::string iniPath = std::filesystem::current_path().string() + "/Assets/settings.ini";
-
-	char Bundlepath[256] = "";
 
 	//image thumbnails
 	Walnut::Image m_Unknown_Thumbnail = Walnut::Image("Assets/UI_Icon_NoTag.PNG");
@@ -74,7 +67,7 @@ public:
 
 	bool ShowHexWindow = false;
 	bool FoundFiles = false;
-	BYTES HexData;
+	vBYTES HexData;
 	std::vector<std::string> files;
 	std::vector<std::string> FileNames;
 
@@ -118,6 +111,7 @@ public:
 	}
 
 	void RenderFileBrowser(RenderMode r) {
+
 		//File Browser Window
 		if (ImGui::Begin("File Browser"))
 		{
@@ -236,7 +230,7 @@ public:
 										ImGui::SameLine();
 										if (ImGui::Button("Export VDAT")) {
 											std::ifstream file(pkg.path, std::ios::binary);
-											BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
+											vBYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
 											bool saved = Walnut::OpenFileDialog::AskSaveFile(VDATData, chunk->ChunkName + ".vdat");
 										}
 										ImGui::SameLine();
@@ -278,7 +272,7 @@ public:
 											ImGui::SameLine();
 											if (ImGui::Button("Export VGPU")) {
 												std::ifstream file(pkg.path, std::ios::binary);
-												BYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												vBYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
 												bool saved = Walnut::OpenFileDialog::AskSaveFile(VGPUData, chunk->ChunkName + ".vgpu");
 											}
 											ImGui::SameLine();
@@ -315,8 +309,8 @@ public:
 											if (ImGui::Button("View DDS Image")) {
 												std::ifstream file(pkg.path, std::ios::binary);
 												//ExportChunk to temp file called temp.dds
-												BYTES DDSData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
-												//remove first 4 bytes
+												vBYTES DDSData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												//remove first 4 vBYTES
 												DDSData.erase(DDSData.begin(), DDSData.begin() + 4);
 												//write to temp.dds
 												std::ofstream DDSFile("Assets/temp.dds", std::ios::binary);
@@ -334,7 +328,7 @@ public:
 											if (ImGui::Button("Export DDS"))
 											{
 												std::ifstream file(pkg.path, std::ios::binary);
-												BYTES DDSData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												vBYTES DDSData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
 												DDSData.erase(DDSData.begin(), DDSData.begin() + 4);
 												bool saved = Walnut::OpenFileDialog::AskSaveFile(DDSData, chunk->ChunkName + ".dds");
 												file.close();
@@ -358,8 +352,8 @@ public:
 											if (ImGui::Button("View Raw Image")) {
 												std::ifstream file(pkg.path, std::ios::binary);
 												//Get both VDAT and VGPU
-												BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
-												BYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												vBYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
+												vBYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
 
 												raw::LoadRAW(VDATData, VGPUData, pkg.IsBigEndian);
 
@@ -374,9 +368,9 @@ public:
 											
 											if (ImGui::Button("Export Model (WIP)")) {
 												std::ifstream file(pkg.path, std::ios::binary);
-												BYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
-												BYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
-												ExportModel(VDATData, VGPUData, "", pkg.IsBigEndian);
+												vBYTES VDATData = pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file);
+												vBYTES VGPUData = pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file);
+												model::ExportModel(VDATData, VGPUData, "", pkg.IsBigEndian);
 											}
 										}
 										ImGui::EndPopup();
@@ -430,14 +424,14 @@ public:
 									}
 									if (ImGui::Button("Export VREF")) {
 										std::ifstream file11(pkg.path, std::ios::binary);
-										BYTES VREFData = pkg::GetVREFBYTES(file11, pkg.CAFFs[i]);
+										vBYTES VREFData = pkg::GetVREFBYTES(file11, pkg.CAFFs[i]);
 										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
 										file11.close();
 									}
 									ImGui::SameLine();
 									if (ImGui::Button("Export VDAT")) {
 										std::ifstream file11(pkg.path, std::ios::binary);
-										BYTES VREFData = pkg::GetVDATBYTES(i, pkg, file11);
+										vBYTES VREFData = pkg::GetVDATBYTES(i, pkg, file11);
 										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
 										file11.close();
 									}
@@ -445,7 +439,7 @@ public:
 									if (ImGui::Button("Export VGPU"))
 									{
 										std::ifstream file11(pkg.path, std::ios::binary);
-										BYTES VREFData = pkg::GetVGPUBYTES(i, pkg, file11);
+										vBYTES VREFData = pkg::GetVGPUBYTES(i, pkg, file11);
 										bool saved = Walnut::OpenFileDialog::AskSaveFile(VREFData, "CAFF " + std::to_string(i + 1) + ".vref");
 										file11.close();
 									}
@@ -534,31 +528,6 @@ public:
 					}
 				}
 
-				// No PKG Directory selected
-				else
-				{
-					ImGui::Text("No Path Selected... ");
-					ImGui::SameLine();
-					//set button to red
-					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.1f, 0.1f, 1.0f));
-					if (ImGui::Button("Select Path"))
-					{
-						std::string spath = Walnut::OpenFileDialog::OpenFolder();
-						if (!spath.empty())
-						{
-							strcpy_s(Bundlepath, spath.c_str());
-							mINI::INIFile file(iniPath);
-							mINI::INIStructure ini;
-							ini["Settings"]["Path"] = Bundlepath;
-							file.write(ini);
-						}
-					}
-
-					ImGui::PopStyleColor();
-
-					ImGui::BeginChild("Scrolling");
-					ImGui::EndChild();
-				}
 			}
 		}
 		ImGui::End();

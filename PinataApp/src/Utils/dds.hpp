@@ -1,12 +1,14 @@
 #pragma once
 #include <string>
 #include "Walnut/Image.h"
+#include <memory>
+#include "ZLibHelpers.h"
 
 //Uses texconv.exe to convert a dds file to a png file then loads it up using walnut::Image
 namespace dds
 {
 	//Converts a dds file to a png file
-	inline void ConvertDDS(const std::string& ddsPath, const std::string& pngPath)
+	inline static void ConvertDDS(const std::string& ddsPath, const std::string& pngPath)
 	{
 		//texconv.exe path.dds -ft png -o path.png
 		std::string command = "Assets/texconv.exe " + ddsPath + " -ft png -o " + pngPath + " -y";
@@ -14,7 +16,7 @@ namespace dds
 	}
 
 	//Loads a dds file into a walnut::Image
-	inline Walnut::Image LoadDDS(const std::string& ddsPath)
+	inline static Walnut::Image LoadDDS(const std::string& ddsPath)
 	{
 		ConvertDDS(ddsPath, "./");
 		return Walnut::Image("Assets/temp.PNG");
@@ -24,11 +26,11 @@ namespace dds
 
 namespace raw {
 
-	std::shared_ptr<Walnut::Image> m_FinalImage;
+	inline static std::shared_ptr<Walnut::Image> m_FinalImage;
 
 
 	//Loads a raw file into a walnut::Image
-	inline void LoadRAW(BYTES VDAT,BYTES VGPU, bool IsBigEndian)
+	inline static void LoadRAW(vBYTES VDAT,vBYTES VGPU, bool IsBigEndian)
 	{
 		//Width and Height are shorts stored at 8 and 10
 		uint16_t Width = Zlib::ConvertBytesToShort(VDAT, 8, IsBigEndian);
@@ -56,10 +58,10 @@ namespace raw {
 		for (int i = 0; i < VGPU.size(); i += 4)
 		{
 			//RGBA
-			BYTE R = VGPU[i];
-			BYTE G = VGPU[i + 1];
-			BYTE B = VGPU[i + 2];
-			BYTE A = VGPU[i + 3];
+			vBYTE R = VGPU[i];
+			vBYTE G = VGPU[i + 1];
+			vBYTE B = VGPU[i + 2];
+			vBYTE A = VGPU[i + 3];
 
 			uint32_t color = (A << 24) | (B << 16) | (G << 8) | R;
 			m_ImageData[i / 4] = color;

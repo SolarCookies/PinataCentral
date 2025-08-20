@@ -7,15 +7,15 @@
 
 #include "Log.hpp"
 
-#define BYTE unsigned char
-#define BYTES std::vector<BYTE>
+#define vBYTE unsigned char
+#define vBYTES std::vector<vBYTE>
 
 namespace Zlib {
 
 	//calculates the checksum of a CAFF header (Where the checksum bytes are nulled)
 	//CREDIT TO MOJOBOJO FOR THIS AWESOME, WORKING HEADER CHECKSUM RECALCULATOR :D 
 	//Copied from https://github.com/weighta/Mumbos-Motors
-	inline static uint32_t CAFF_checksum(BYTES CAFFHeader) {
+	inline static uint32_t CAFF_checksum(vBYTES CAFFHeader) {
 		uint32_t r11 = 0;
 
 		for (size_t i = 0; i < CAFFHeader.size(); i++) {
@@ -43,11 +43,11 @@ namespace Zlib {
 	}
 
 	// Compresses data based on input size
-	inline static BYTES CompressData(BYTES& data) {
+	inline static vBYTES CompressData(vBYTES& data) {
 
-		BYTES Result;
+		vBYTES Result;
 		const size_t Buffer_Size = 128 * 1024;
-		Byte Temp_Buffer[Buffer_Size];
+		vBYTE Temp_Buffer[Buffer_Size];
 
 		z_stream Stream = {};
 		Stream.next_in = (Bytef*)data.data();
@@ -91,7 +91,7 @@ namespace Zlib {
 	}
 
     // Decompresses data based on input size
-    inline static BYTES DecompressData(BYTES& data, uint32_t DecompressSize) {
+    inline static vBYTES DecompressData(vBYTES& data, uint32_t DecompressSize) {
         if (DecompressSize == data.size()) {
             return data;
         }
@@ -100,7 +100,7 @@ namespace Zlib {
 			return {};
 		}
 
-        BYTES Result(DecompressSize);
+        vBYTES Result(DecompressSize);
 
         z_stream Stream = {};
         Stream.avail_in = static_cast<uInt>(data.size());
@@ -138,7 +138,7 @@ namespace Zlib {
     }
 
 	// For 32 bit/4 byte ints
-	inline static uint32_t ConvertBytesToInt(BYTES& data, bool isBigEndian) {
+	inline static uint32_t ConvertBytesToInt(vBYTES& data, bool isBigEndian) {
 		if (data.size() != sizeof(uint32_t)) {
 			return 0;
 		}
@@ -153,7 +153,7 @@ namespace Zlib {
 		return value;
 	}
 
-	inline static uint32_t ConvertBytesToInt(BYTES& data, uint32_t startOffset, bool isBigEndian) {
+	inline static uint32_t ConvertBytesToInt(vBYTES& data, uint32_t startOffset, bool isBigEndian) {
 		if (data.size() < startOffset + sizeof(uint32_t)) {
 			return 0;
 		}
@@ -169,7 +169,7 @@ namespace Zlib {
 	}
 
 	// For 32 bit/4 byte floats
-	inline static float ConvertBytesToFloat(BYTES& data, bool isBigEndian) {
+	inline static float ConvertBytesToFloat(vBYTES& data, bool isBigEndian) {
 		if (data.size() != sizeof(float)) {
 			return 0;
 		}
@@ -185,7 +185,7 @@ namespace Zlib {
 		return value;
 	}
 
-	inline static float ConvertBytesToFloat(BYTES& data, uint32_t startOffset, bool isBigEndian) {
+	inline static float ConvertBytesToFloat(vBYTES& data, uint32_t startOffset, bool isBigEndian) {
 		if (data.size() < startOffset + sizeof(float)) {
 			return 0;
 		}
@@ -202,7 +202,7 @@ namespace Zlib {
 	}
 
 	// For 16 bit/2 byte ints
-	inline static int_least16_t ConvertBytesToShort(BYTES& data, bool isBigEndian) {
+	inline static int_least16_t ConvertBytesToShort(vBYTES& data, bool isBigEndian) {
 		if (data.size() != sizeof(int_least16_t)) {
 			return 0;
 		}
@@ -217,7 +217,7 @@ namespace Zlib {
 		return value;
 	}
 
-	inline static int_least16_t ConvertBytesToShort(BYTES& data, uint32_t startOffset, bool isBigEndian) {
+	inline static int_least16_t ConvertBytesToShort(vBYTES& data, uint32_t startOffset, bool isBigEndian) {
 		if (data.size() < startOffset + sizeof(int_least16_t)) {
 			return 0;
 		}
@@ -233,40 +233,40 @@ namespace Zlib {
 	}
 
 	// Converts bytes to ASCII string
-	inline static std::string ConvertBytesToString(BYTES& data) {
+	inline static std::string ConvertBytesToString(vBYTES& data) {
 		return std::string(data.begin(), data.end());
 	}
 
 	// For 32 bit/4 byte ints
-	inline static BYTES ConvertIntToBytes(uint32_t value, bool isBigEndian) {
+	inline static vBYTES ConvertIntToBytes(uint32_t value, bool isBigEndian) {
 		if (isBigEndian) {
 			value = _byteswap_ulong(value);
 		}
 
-		BYTES data(sizeof(uint32_t));
+		vBYTES data(sizeof(uint32_t));
 		memcpy(data.data(), &value, sizeof(uint32_t));
 		return data;
 	}
 
 	// For 32 bit/4 byte floats
-	inline static BYTES ConvertFloatToBytes(float value, bool isBigEndian) {
+	inline static vBYTES ConvertFloatToBytes(float value, bool isBigEndian) {
 		if (isBigEndian) {
 			uint32_t temp = _byteswap_ulong(*reinterpret_cast<uint32_t*>(&value));
 			value = *reinterpret_cast<float*>(&temp);
 		}
 
-		BYTES data(sizeof(float));
+		vBYTES data(sizeof(float));
 		memcpy(data.data(), &value, sizeof(float));
 		return data;
 	}
 
 	// For 16 bit/2 byte ints
-	inline static BYTES ConvertShortToBytes(int_least16_t value, bool isBigEndian) {
+	inline static vBYTES ConvertShortToBytes(int_least16_t value, bool isBigEndian) {
 		if (isBigEndian) {
 			value = _byteswap_ushort(value);
 		}
 
-		BYTES data(sizeof(int_least16_t));
+		vBYTES data(sizeof(int_least16_t));
 		memcpy(data.data(), &value, sizeof(int_least16_t));
 		return data;
 	}

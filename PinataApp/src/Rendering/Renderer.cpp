@@ -4,7 +4,6 @@
 
 #include "../Utils/OpenFileDialog.h"
 
-#include "../GlobalSettings.h"
 
 #include "glm/gtc/type_ptr.hpp"
 
@@ -188,13 +187,6 @@ namespace cubed {
 		ImGui::DragFloat3("Position", glm::value_ptr(m_CubePosition));
 		ImGui::DragFloat3("Rotation", glm::value_ptr(m_CubeRotation));
 
-		//add a button to test popup
-		if (ImGui::Button("Test Popup"))
-		{
-			std::cout << "Popup test" << std::endl;
-			ShowPopup(std::string("Test popup"), true);
-			UpdateProgressBar(0.5f);
-		}
 
 		ImGui::End();
 

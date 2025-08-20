@@ -243,20 +243,31 @@
 
 
 #include <utility>
+#undef byte
 #include <algorithm>
+#undef byte
 #include <istream>
+#undef byte
 #include <ostream>
+#undef byte
 #include <limits>
+#undef byte
 #include <stdexcept>
+#undef byte
 #include <climits>
+#undef byte
 #include <cmath>
+#undef byte
 #include <cstring>
+#undef byte
 #include <cstdlib>
+#undef byte
 #if HALF_ENABLE_CPP11_TYPE_TRAITS
 	#include <type_traits>
 #endif
 #if HALF_ENABLE_CPP11_CSTDINT
 	#include <cstdint>
+#undef byte
 #endif
 #if HALF_ERRHANDLING_ERRNO
 	#include <cerrno>

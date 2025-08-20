@@ -23,9 +23,9 @@ struct PKG {
 };
 
 struct Streams {
-	BYTES VREF;
-	BYTES VDAT;
-	BYTES VGPU;
+	vBYTES VREF;
+	vBYTES VDAT;
+	vBYTES VGPU;
 };
 
 inline static uint32_t GetNearestMultiple(uint32_t value, uint32_t multiple) {
@@ -34,13 +34,13 @@ inline static uint32_t GetNearestMultiple(uint32_t value, uint32_t multiple) {
 }
 
 namespace pkg {
-	inline static BYTES GetVREFBYTES(std::ifstream& file, CAFF C) {
+	inline static vBYTES GetVREFBYTES(std::ifstream& file, CAFF C) {
 		//Save current position
 		uint32_t CurrentPosition = file.tellg();
 		//Goto vref offset
 		Walnut::OpenFileDialog::SeekBeg(file, C.CAFF_Info.Offset + C.VREF_Offset);
 
-		BYTES COMPRESSEDVREF = Walnut::OpenFileDialog::Read_Bytes(file, C.VREF_Compressed_Size);
+		vBYTES COMPRESSEDVREF = Walnut::OpenFileDialog::Read_Bytes(file, C.VREF_Compressed_Size);
 
 		//Restore position
 		Walnut::OpenFileDialog::SeekBeg(file, CurrentPosition);
@@ -48,23 +48,23 @@ namespace pkg {
 		return Zlib::DecompressData(COMPRESSEDVREF, C.VREF_Uncompressed_Size);
 	}
 
-	inline static BYTES GetVDATBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
+	inline static vBYTES GetVDATBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
 		return Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, package.VREFs[CAFFNumber].VDAT_Offset + package.CAFF_Infos[CAFFNumber].Offset, package.VREFs[CAFFNumber].VDAT_Compressed_Size), package.VREFs[CAFFNumber].VDAT_Uncompressed_Size);
 	}
 
-	inline static BYTES GetChunkVDATBYTES(uint32_t CAFFNumber, uint32_t ChunkNumber, PKG package, std::ifstream& file) {
+	inline static vBYTES GetChunkVDATBYTES(uint32_t CAFFNumber, uint32_t ChunkNumber, PKG package, std::ifstream& file) {
 		return Walnut::OpenFileDialog::CopyBytes(GetVDATBYTES(CAFFNumber, package, file), package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Offset, package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VDAT_Size);
 	}
 
-	inline static BYTES GetVGPUBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
+	inline static vBYTES GetVGPUBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
 		return Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, package.VREFs[CAFFNumber].VGPU_Offset + package.CAFF_Infos[CAFFNumber].Offset, package.VREFs[CAFFNumber].VGPU_Compressed_Size), package.VREFs[CAFFNumber].VGPU_Uncompressed_Size);
 	}
 
-	inline static BYTES GetChunkVGPUBYTES(uint32_t CAFFNumber, uint32_t ChunkNumber, PKG package, std::ifstream& file) {
+	inline static vBYTES GetChunkVGPUBYTES(uint32_t CAFFNumber, uint32_t ChunkNumber, PKG package, std::ifstream& file) {
 		return Walnut::OpenFileDialog::CopyBytes(GetVGPUBYTES(CAFFNumber, package, file), package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VGPU_Offset, package.VREFs[CAFFNumber].ChunkInfos[ChunkNumber].VGPU_Size);
 	}
 
-	FileType GetFileType(std::string ChunkName, BYTES& VDAT, BYTES& VGPU)
+	inline static FileType GetFileType(std::string ChunkName, vBYTES& VDAT, vBYTES& VGPU)
 	{
 		//if the first 4 bytes are "2E 64 64 64" then return DDS
 		if (VDAT.size() > 25)
@@ -95,8 +95,8 @@ namespace pkg {
 	inline static PKG ReadPKG(std::string path) {
 		Walnut::Timer timer;
 		PKG pkg;
-		BYTES VDAT;
-		BYTES VGPU;
+		vBYTES VDAT;
+		vBYTES VGPU;
 		pkg.path = path;
 
 		std::ifstream file(path, std::ios::binary);
@@ -106,7 +106,7 @@ namespace pkg {
 		}
 
 		//Read Version (4 bytes) If version is > 3 then the file is big endian
-		BYTES Version = Walnut::OpenFileDialog::Read_Bytes(file, 4);
+		vBYTES Version = Walnut::OpenFileDialog::Read_Bytes(file, 4);
 		uint32_t VersionInt = Zlib::ConvertBytesToInt(Version, false);
 		pkg.Version = VersionInt;
 		if (VersionInt > 3) {
@@ -118,7 +118,7 @@ namespace pkg {
 		Log("Is PKG Big Endian: " + std::to_string(pkg.IsBigEndian), EType::Normal);
 
 		//Read CAFF Count (next 4 bytes)
-		BYTES CAFFCount = Walnut::OpenFileDialog::Read_Bytes(file, 4);
+		vBYTES CAFFCount = Walnut::OpenFileDialog::Read_Bytes(file, 4);
 		pkg.CAFFCount = Zlib::ConvertBytesToInt(CAFFCount, pkg.IsBigEndian);
 		Log("CAFF Count: " + std::to_string(pkg.CAFFCount), EType::Normal);
 
@@ -142,7 +142,7 @@ namespace pkg {
 			CAFF caff;
 			caff.CAFF_Info = C;
 			//CAFF Version (17 bytes)
-			BYTES CAFF_Version_B = Walnut::OpenFileDialog::Read_Bytes(file, 17);
+			vBYTES CAFF_Version_B = Walnut::OpenFileDialog::Read_Bytes(file, 17);
 			std::string CAFF_Version = "";
 			CAFF_Version = Zlib::ConvertBytesToString(CAFF_Version_B);
 			caff.CAFF_Version = CAFF_Version;
@@ -215,7 +215,7 @@ namespace pkg {
 
 			VREF VREFn;
 
-			BYTES VREF_Uncompressed = GetVREFBYTES(file, C);
+			vBYTES VREF_Uncompressed = GetVREFBYTES(file, C);
 
 			VREFn = caff::Read_VREF(VREF_Uncompressed, C, pkg.IsBigEndian);
 
@@ -229,12 +229,10 @@ namespace pkg {
 
 			Log("Checking Chunk Types...", EType::BLUE);
 
-#pragma omp parallel for num_threads(omp_get_max_threads()/2)
 			for (int cc = 0; cc < pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos.size(); cc++) {
 				if (pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos[cc].ChunkName.find("2.42") != std::string::npos) {
-#pragma omp critical
 					{
-						BYTES VGPU1 = { 0x00 };
+						vBYTES VGPU1 = { 0x00 };
 						//FileType RealFileType GetFileType(pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos[cc].ChunkName, GetChunkVDATBYTES(pkg.VREFs.size() - 1, pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos[cc].ID - 1, pkg, file), VGPU1)
 
 						pkg.VREFs[pkg.VREFs.size() - 1].ChunkInfos[cc].Type = FileType::DDS;
@@ -255,7 +253,7 @@ namespace pkg {
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
-	inline static Streams UpdateStreams(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU, bool DDS = false) {
+	inline static Streams UpdateStreams(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, vBYTES VDAT, vBYTES VGPU, bool DDS = false) {
 		Streams PatchedStreams;
 
 		std::ifstream file(pkg.path, std::ios::binary);
@@ -306,7 +304,7 @@ namespace pkg {
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
-	inline static Streams UpdateStreams_WithDoubleOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+	inline static Streams UpdateStreams_WithDoubleOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, vBYTES VDAT, vBYTES VGPU) {
 		Streams PatchedStreams;
 
 		std::ifstream filer(pkg.path, std::ios::binary);
@@ -328,14 +326,14 @@ namespace pkg {
 
 		Log("Creating New VDAT and VGPU with double Offset spacing", EType::Warning);
 
-		BYTES OGVGPU = PatchedStreams.VGPU;
-		BYTES OGVDAT = PatchedStreams.VDAT;
+		vBYTES OGVGPU = PatchedStreams.VGPU;
+		vBYTES OGVDAT = PatchedStreams.VDAT;
 
 		for (int i = 0; i < VREF.ChunkInfos.size(); i++) {
 			//resize VDAT to ChunkInfo.Offset * 2
 			PatchedStreams.VDAT.resize(VREF.ChunkInfos[i].VDAT_Offset * 2);
 
-			BYTES VDATChunk;
+			vBYTES VDATChunk;
 
 			if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
 				//Patch VDAT with new VDAT
@@ -357,7 +355,7 @@ namespace pkg {
 				//resize VGPU to ChunkInfo.Offset * 2 + ChunkInfo.Size
 				PatchedStreams.VGPU.resize(VREF.ChunkInfos[i].VGPU_Offset * 2);
 
-				BYTES VGPUChunk;
+				vBYTES VGPUChunk;
 				if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
 					//Patch VGPU with new VGPU
 					VGPUChunk = VGPU;
@@ -380,7 +378,7 @@ namespace pkg {
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
-	inline static Streams UpdateStreams_WithOneOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+	inline static Streams UpdateStreams_WithOneOffsetSpacing(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, vBYTES VDAT, vBYTES VGPU) {
 		Streams PatchedStreams;
 
 		std::ifstream filer(pkg.path, std::ios::binary);
@@ -402,11 +400,11 @@ namespace pkg {
 
 		Log("Creating New VDAT and VGPU with new Offset spacing", EType::Warning);
 
-		BYTES OGVGPU = PatchedStreams.VGPU;
-		BYTES OGVDAT = PatchedStreams.VDAT;
+		vBYTES OGVGPU = PatchedStreams.VGPU;
+		vBYTES OGVDAT = PatchedStreams.VDAT;
 
 		for (int i = 0; i < VREF.ChunkInfos.size(); i++) {
-			BYTES VDATChunk;
+			vBYTES VDATChunk;
 
 			if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
 				//Patch VDAT with new VDAT
@@ -424,7 +422,7 @@ namespace pkg {
 			}
 
 			if (VREF.ChunkInfos[i].HasVGPU) {
-				BYTES VGPUChunk;
+				vBYTES VGPUChunk;
 				if (VREF.ChunkInfos[i].ChunkName == ChunkInfo.ChunkName) {
 					//Patch VGPU with new VGPU
 					VGPUChunk = VGPU;
@@ -446,7 +444,7 @@ namespace pkg {
 	}
 
 	//Returns full vref, vdat, vgpu streams patched with new data
-	inline static Streams UpdateStreams_AppendEnd(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, BYTES VDAT, BYTES VGPU) {
+	inline static Streams UpdateStreams_AppendEnd(PKG pkg, VREF VREF, CAFF Caff, ChunkInfo ChunkInfo, vBYTES VDAT, vBYTES VGPU) {
 		Streams PatchedStreams;
 
 		std::ifstream file(pkg.path, std::ios::binary);
@@ -491,8 +489,8 @@ namespace pkg {
 	}
 
 	//Returns full caff patched with new data
-	inline static BYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian) {
-		BYTES NewCAFF;
+	inline static vBYTES UpdateCAFF(PKG pkg, VREF VREF, CAFF Caff, Streams NewStreams, bool BigEndian) {
+		vBYTES NewCAFF;
 
 		std::ifstream file(pkg.path, std::ios::binary);
 		if (!file.is_open()) {
@@ -510,14 +508,14 @@ namespace pkg {
 		Log("NewStreams.VGPU Uncompressed Size: " + std::to_string(VGPU_Uncompressed_Size), EType::Normal);
 
 		//Compress VDAT
-		BYTES VDAT_Compressed = Zlib::CompressData(NewStreams.VDAT);
+		vBYTES VDAT_Compressed = Zlib::CompressData(NewStreams.VDAT);
 		Log("New VDAT Compressed Size: " + std::to_string(VDAT_Compressed.size()), EType::Normal);
 
 		//Compress VGPU
-		BYTES VGPU_Compressed = Zlib::CompressData(NewStreams.VGPU);
+		vBYTES VGPU_Compressed = Zlib::CompressData(NewStreams.VGPU);
 		Log("New VGPU Compressed Size: " + std::to_string(VGPU_Compressed.size()), EType::Normal);
 
-		BYTES ModifiedVRef = NewStreams.VREF;
+		vBYTES ModifiedVRef = NewStreams.VREF;
 
 		//Set VREF VDAT Uncompressed Size at offset 9
 		Log("Setting VDAT Uncompressed Size at offset 9: " + std::to_string(VDAT_Uncompressed_Size), EType::Normal);
@@ -538,18 +536,18 @@ namespace pkg {
 		Log("Old VREF Size: " + std::to_string(NewStreams.VREF.size()) + " New VREF Size: " + std::to_string(ModifiedVRef.size()), EType::Normal);
 
 		//compress VREF
-		BYTES VREF_Compressed = Zlib::CompressData(ModifiedVRef);
+		vBYTES VREF_Compressed = Zlib::CompressData(ModifiedVRef);
 
 		Log("Old VREF Compressed Size: " + std::to_string(Caff.VREF_Compressed_Size) + " New VREF Compressed Size: " + std::to_string(VREF_Compressed.size()), EType::Normal);
 		Log("VREF Compressed Size: " + std::to_string(VREF_Compressed.size()), EType::Normal);
 
-		BYTES VLUT_Uncompressed = Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size), Caff.VLUT_Uncompressed_Size);
+		vBYTES VLUT_Uncompressed = Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, Caff.VLUT_Offset + Caff.CAFF_Info.Offset, Caff.VLUT_Compressed_Size), Caff.VLUT_Uncompressed_Size);
 
-		BYTES VLUT_Compressed = Zlib::CompressData(VLUT_Uncompressed);
+		vBYTES VLUT_Compressed = Zlib::CompressData(VLUT_Uncompressed);
 
 		Log("VLUT Compressed Size: " + std::to_string(VLUT_Compressed.size()), EType::Normal);
 
-		BYTES CAFFHeader = Walnut::OpenFileDialog::Read_Bytes(file, Caff.CAFF_Info.Offset, Caff.VREF_Offset);
+		vBYTES CAFFHeader = Walnut::OpenFileDialog::Read_Bytes(file, Caff.CAFF_Info.Offset, Caff.VREF_Offset);
 
 		//Set VREF Uncompressed Size at offset 80 of CAFFHeader
 		Walnut::OpenFileDialog::SetIntAtOffset(CAFFHeader, 80, VREF_Uncompressed_Size, BigEndian);
@@ -582,12 +580,12 @@ namespace pkg {
 	}
 
 	//Returns full pkg patched with new data
-	inline static BYTES UpdatePKG(PKG pkg, BYTES NewCAFF, int CAFFNumber) {
+	inline static vBYTES UpdatePKG(PKG pkg, vBYTES NewCAFF, int CAFFNumber) {
 		//Open PKG
 		std::ifstream file(pkg.path, std::ios::binary);
 
-		BYTES PKG = Walnut::OpenFileDialog::Read_Bytes(file, 0, pkg.CAFF_Infos[CAFFNumber].Offset);
-		BYTES NewPKG;
+		vBYTES PKG = Walnut::OpenFileDialog::Read_Bytes(file, 0, pkg.CAFF_Infos[CAFFNumber].Offset);
+		vBYTES NewPKG;
 
 		std::vector<CAFF_Info> NewCAFFInfos;
 
@@ -653,7 +651,7 @@ namespace pkg {
 				NewCAFFInfo.Offset = NextOffset;
 
 				//Copy CAFF
-				BYTES CAFF = Walnut::OpenFileDialog::Read_Bytes(file, CaffOffset, CaffSize);
+				vBYTES CAFF = Walnut::OpenFileDialog::Read_Bytes(file, CaffOffset, CaffSize);
 				NewPKG.insert(NewPKG.end(), CAFF.begin(), CAFF.end());
 
 				NewCAFFInfo.Size = CAFF.size();
@@ -691,7 +689,7 @@ namespace pkg {
 
 	//Replaces a chunk in a PKG file (WIP) - Works in unreal so all i need to do is port over the code
 	inline static void ReplaceChunk(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, std::string PatchFilePath, std::string NewPKGExportPath, bool OveridePKG, bool DDS = false) {
-		//Open Patch File and read data into BYTES
+		//Open Patch File and read data into vBYTES
 		std::ifstream patchfile(PatchFilePath, std::ios::binary);
 		if (!patchfile.is_open()) {
 			Log("Failed to open patch file: " + PatchFilePath, EType::Error);
@@ -699,7 +697,7 @@ namespace pkg {
 		}
 		Log("Reading patch file...", EType::Normal);
 		Walnut::Timer timer;
-		BYTES PatchFileData;
+		vBYTES PatchFileData;
 		while (!patchfile.eof()) {
 			PatchFileData.push_back(patchfile.get());
 		}
@@ -721,12 +719,12 @@ namespace pkg {
 					Log("Working on VREF: " + std::to_string(vref_i) + " Out of: " + std::to_string(pkg.VREFs.size()), EType::Normal);
 					Log("Working on Chunk: " + std::to_string(chunk_i) + " Out of: " + std::to_string(pkg.VREFs[vref_i].ChunkInfos.size()), EType::Normal);
 
-					BYTES OGVGPUChunk;
+					vBYTES OGVGPUChunk;
 					if (IndexedChunk->HasVGPU) {
 						OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, file);
 					}
 
-					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
+					vBYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
 
 					Streams NewStreams;
 
@@ -761,10 +759,10 @@ namespace pkg {
 					}
 
 					//Update CAFF
-					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
+					vBYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
 
 					//Update PKG with new CAFF
-					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
+					vBYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
 
 					Log("Writing new PKG file...", EType::Normal);
 
@@ -820,7 +818,7 @@ namespace pkg {
 	}
 
 	//Replaces a chunk in a PKG file
-	inline static void ReplaceChunkWithBytes(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, BYTES PatchFileData) {
+	inline static void ReplaceChunkWithBytes(PKG pkg, uint32_t CAFFNumber, std::string ChunkName, ChunkType Type, vBYTES PatchFileData) {
 		std::ifstream file(pkg.path, std::ios::binary);
 
 		//For each vref in the pkg
@@ -832,12 +830,12 @@ namespace pkg {
 					Log("Working on VREF: " + std::to_string(vref_i) + " Out of: " + std::to_string(pkg.VREFs.size()), EType::Normal);
 					Log("Working on Chunk: " + std::to_string(chunk_i) + " Out of: " + std::to_string(pkg.VREFs[vref_i].ChunkInfos.size()), EType::Normal);
 
-					BYTES OGVGPUChunk;
+					vBYTES OGVGPUChunk;
 					if (IndexedChunk->HasVGPU) {
 						OGVGPUChunk = GetChunkVGPUBYTES(vref_i, chunk_i, pkg, file);
 					}
 
-					BYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
+					vBYTES OGVDATChunk = GetChunkVDATBYTES(vref_i, chunk_i, pkg, file);
 
 					Streams NewStreams;
 
@@ -868,10 +866,10 @@ namespace pkg {
 					}
 
 					//Update CAFF
-					BYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
+					vBYTES NewCAFF = UpdateCAFF(pkg, pkg.VREFs[vref_i], pkg.CAFFs[vref_i], NewStreams, pkg.IsBigEndian);
 
 					//Update PKG with new CAFF
-					BYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
+					vBYTES NewPKG = UpdatePKG(pkg, NewCAFF, vref_i);
 
 					Log("Writing new PKG file...", EType::Normal);
 
