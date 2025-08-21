@@ -570,11 +570,11 @@ namespace Walnut {
 		// Load default font
 		ImFontConfig fontConfig;
 		fontConfig.FontDataOwnedByAtlas = false;
-		ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF((void*)g_RobotoRegular, sizeof(g_RobotoRegular), 20.0f, &fontConfig);
-		s_Fonts["Default"] = robotoFont;
-		s_Fonts["Bold"] = io.Fonts->AddFontFromMemoryTTF((void*)g_RobotoBold, sizeof(g_RobotoBold), 20.0f, &fontConfig);
-		s_Fonts["Italic"] = io.Fonts->AddFontFromMemoryTTF((void*)g_RobotoItalic, sizeof(g_RobotoItalic), 20.0f, &fontConfig);
-		io.FontDefault = robotoFont;
+		// Ubuntu Mono is a royalty free monospace font
+		// https://www.1001fonts.com/ubuntu-font.html#license
+		ImFont* ubuntuMono = io.Fonts->AddFontFromFileTTF("Assets/UbuntuMono-R.ttf", 20.0f, &fontConfig);
+		s_Fonts["Default"] = ubuntuMono;
+		io.FontDefault = ubuntuMono;
 
 		// Upload Fonts
 		{

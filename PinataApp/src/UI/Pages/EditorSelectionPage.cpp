@@ -17,7 +17,7 @@ void EditorPage::render(GUI& gui)
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f)); // Set text color to black
 		//Add Decription Text
-		ImGui::Text("Used to browse and modify .pkg files");
+		ImGui::TextWrapped("Used to browse and modify .pkg files");
 		ImGui::PopStyleColor();
 
 		//Center the button on the bottom of the child window
