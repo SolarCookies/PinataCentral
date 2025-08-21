@@ -417,8 +417,7 @@ namespace model {
                 
                 vBYTES VertBlockData;
 				VertBlockData.resize(mb.VertDef.entrySize);
-				std::cout << "Vertex Block Size: " << mb.VertDef.entrySize << std::endl;
-				std::cout << "Vertex Pos: " << (i * mb.VertDef.entrySize) << std::endl;
+				
 				memcpy(VertBlockData.data(), &vertexData[i * mb.VertDef.entrySize], mb.VertDef.entrySize);
 
 				VertexBlock block = ConstructVertexBlockFromSize(mb.VertDef.entrySize, BigEndian, VertBlockData);

@@ -3,6 +3,7 @@
 #include "PackageManager/PackageManager.h"
 #include "../GUI.h"
 #include "SaveManager/SaveManager.h"
+#include "BundleManager/BundleManager.h"
 
 void EditorPage::render(GUI& gui)
 {
@@ -108,6 +109,7 @@ void EditorPage::render(GUI& gui)
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
 		if (ImGui::Button("Coming Soon", ImVec2(200, 50))) {
 			// Handle button click
+			gui.CurrentPage = std::make_unique<BundleManager>();
 		}
 		ImGui::PopStyleColor();
 		ImGui::EndChild();

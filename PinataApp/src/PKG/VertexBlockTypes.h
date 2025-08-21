@@ -20,8 +20,11 @@ struct Vector2 {
 struct VertexBlock {
 	Vector3 position;
 	Vector3 normal;
+	bool hasNormal = false;
 	Vector2 texCoord;
+	bool hasTexCoord = false;
 	Vector3 VertexColor;
+	bool hasVertexColor = false;
 };
 
 
@@ -69,6 +72,7 @@ inline VertexBlock ConstructVertexBlockFromSize(int size, bool bigEndian, vBYTES
 			uv.u = static_cast<float>(lv.u);
 			uv.v = static_cast<float>(lv.v);
 			Vert.texCoord = uv;
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 48) {
 			LowVector2 lv;
@@ -81,44 +85,56 @@ inline VertexBlock ConstructVertexBlockFromSize(int size, bool bigEndian, vBYTES
 			uv.u = static_cast<float>(lv.u);
 			uv.v = static_cast<float>(lv.v);
 			Vert.texCoord = uv;
+			Vert.hasTexCoord = true;
 		}
 	}
 	else { // PC GLFW
 		if( size == 76) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 72) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 68) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 64) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 60) {
 			memcpy(&Vert.texCoord, &block[40], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 56) {
 			memcpy(&Vert.texCoord, &block[36], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 52) {
 			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 48) {
 			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2)); // maybe sometimes 20?
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 44) {
 			memcpy(&Vert.texCoord, &block[20], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 40) {
 			//No UVs
 		}
 		else if (size == 36) {
 			memcpy(&Vert.texCoord, &block[20], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 34) {
 			memcpy(&Vert.texCoord, &block[24], sizeof(Vector2));
+			Vert.hasTexCoord = true;
 		}
 		else if (size == 32) {
 			//No UVs

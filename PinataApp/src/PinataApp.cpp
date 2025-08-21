@@ -162,15 +162,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 							Data_Wad::read(path1);
 						}
 					}
-					if (ImGui::MenuItem("Open Bundle.bnl (WIP)"))
-					{
-						std::string path1 = Walnut::OpenFileDialog::OpenFile("Bundle\0*.bnl\0\0");
-						if (!path1.empty())
-						{
-							//Open the Bundle
-							Bundle::read(path1);
-						}
-					}
+					
 				}
 				if (ImGui::MenuItem("Exit"))
 				{
