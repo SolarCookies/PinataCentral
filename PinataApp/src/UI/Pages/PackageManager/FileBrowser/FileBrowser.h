@@ -10,6 +10,9 @@
 #include <filesystem>
 #include "../../../../PKG/OGModel.h"
 #include "../../../../GlobalSettings.h"
+#include "../../../../CommonUI/AidEditor/AidEditor.h"
+#include "../../../../CommonUI/AidEditor/Widgets/aid_pip_pinata_misc_Widget.h"
+#include "../../../../Bundle.h"
 
 #include <random>
 
@@ -24,6 +27,8 @@ class FileBrowser
 {
 public:
 	char Bundlepath[255] = { 0 };
+	AidEditor aidEditor;
+	BundleReader bundle1;
 
 	FileBrowser() {
 		LoadSettings();
@@ -33,10 +38,36 @@ public:
 		for(int i = 0; i < PackagesDicrectory.length(); i++) {
 			Bundlepath[i] = PackagesDicrectory[i];
 		}
+		std::string BundlesDicrectoryEnglish = BundlesDicrectory + "\\englishus.bnl";
+		bundle1 = BundleReader(BundlesDicrectoryEnglish);
 	};
 	~FileBrowser() {
 	};
 	
+	void UpdateSelectedAid(std::string Name, vBYTES& vdat, vBYTES& vgpu) {
+
+		aidEditor.aidWidgets.clear();
+		if (Name.find("2.53") != std::string::npos) {
+			//Requirement
+		}
+		if (Name.find("2.19") != std::string::npos) {
+			//Tag Group
+		}
+		if (Name.find("2.42") != std::string::npos) {
+			//Image
+		}
+		if (Name.find("4.00") != std::string::npos) {
+			//Model
+		}
+		if (Name.find("4.01") != std::string::npos) {
+			//Model TIP
+		}
+		if (Name.find("2.78") != std::string::npos) {
+			auto pipWidget = std::make_unique<PipWidget>();
+			pipWidget->init(aidEditor, vdat, vgpu, bundle1);
+			aidEditor.AddWidget(pipWidget.release());
+		}
+	}
 
 
 	std::string CurrentPKG = "";
@@ -212,6 +243,7 @@ public:
 											IsDDS = false;
 											chunk->Type = RealFileType;
 										}
+										UpdateSelectedAid(chunk->ChunkName, pkg::GetChunkVDATBYTES(currentcaffindex, i, pkg, file), pkg::GetChunkVGPUBYTES(currentcaffindex, i, pkg, file));
 
 										file.close();
 
@@ -219,6 +251,7 @@ public:
 									}
 									if (ImGui::BeginPopup("popup")) {
 										CurrentAid = chunk->ChunkName;
+
 
 										//add buttons to view vdat and vgpu
 										if (ImGui::Button("View VDAT")) {
@@ -544,6 +577,7 @@ public:
 		if (ShowImageWindow) {
 			RenderImage("Assets/temp.PNG");
 		}
+		aidEditor.Render();
 	}
 
 	void RenderImage(std::string path)

@@ -18,7 +18,10 @@ void EditorPage::render(GUI& gui)
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f)); // Set text color to black
 		//Add Decription Text
-		ImGui::TextWrapped("Used to browse and modify .pkg files");
+		ImGui::TextWrapped("Used to browse and modify");
+
+		ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(".pkg files").x) / 2); // Center the text horizontally
+		ImGui::Text(".pkg files");
 		ImGui::PopStyleColor();
 
 		//Center the button on the bottom of the child window
@@ -83,12 +86,8 @@ void EditorPage::render(GUI& gui)
 
 
 		//Set child background color to white
-		//ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.6f, 1.0f, 0.6f, 1.0f));
-		//ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-		//Deactivated colors
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.6f, 1.0f, 0.6f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 
 		ImGui::BeginChild("BundleManagerButton", ImVec2(300, 120), true);
 		//make button blue
@@ -105,9 +104,9 @@ void EditorPage::render(GUI& gui)
 		//Center the button on the bottom of the child window
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 60); // Adjust the Y position to place the button at the bottom
 		ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 200) / 2); // Center the button horizontally
-		//ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.5f, 0.1f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
-		if (ImGui::Button("Coming Soon", ImVec2(200, 50))) {
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.5f, 0.1f, 1.0f));
+		//ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+		if (ImGui::Button("Bundle", ImVec2(200, 50))) {
 			// Handle button click
 			gui.CurrentPage = std::make_unique<BundleManager>();
 		}
