@@ -283,4 +283,21 @@ namespace caff {
 		return vref;
 	}
 
+	inline static vBYTES Get_VDAT(vBYTES& CAFFBYTES, CAFF& caff, VREF& vref) {
+		//If the VDAT offset is 0 then we can assume that the VDAT is not present in the CAFF
+		vBYTES CompressedVDAT = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, vref.VDAT_Offset, vref.VDAT_Compressed_Size);
+		if(vref.VDAT_Compressed_Size == vref.VDAT_Uncompressed_Size || vref.VDAT_Uncompressed_Size == 0) {
+			//If the compressed size is equal to the uncompressed size then we can assume that the VDAT is not compressed
+			return CompressedVDAT;
+		}
+		else {
+			vBYTES VDAT = Zlib::DecompressData(CompressedVDAT, vref.VDAT_Uncompressed_Size);
+			if (VDAT.size() != vref.VDAT_Uncompressed_Size) {
+				std::cout << "VDAT Decompression failed, size mismatch!" << std::endl;
+				return vBYTES();
+			}
+			return VDAT;
+		}
+	}
+
 }

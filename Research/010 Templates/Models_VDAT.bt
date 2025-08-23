@@ -11,6 +11,21 @@
 //   History: 
 //------------------------------------------------
 
+//------------------------------------------------
+//--- Color Meanings
+// - cWhite, cGray, CLtGray, cDkGray = Unknown
+// - cBlue, cDkBlue, cLtBlue = Offset
+// - cYellow = Count
+// - cDkRed = Size
+// - cGreen = Float
+// - cPurple,cLtPurple = String
+// - cAqua = ID or Type
+// - cRed = Flags
+//
+//
+//------------------------------------------------
+
+
 //BigEndian(); //Enable if its a TIP model
 
 
@@ -44,21 +59,21 @@ void AddOffsetToVisit(int offset) {
 
 
 struct ModelHeader{
-    int HeaderOffset;
-    int NumOfEntrys;
+    int HeaderOffset <bgcolor=cBlue>;
+    int NumOfEntrys <bgcolor=cYellow>;
     int unk1;
     int unk2;
     int unk3;
-} modelHeader <bgcolor=cLtGreen>;
+} modelHeader <bgcolor=cGray>;
 
 local struct EntryType{
-    int ID;
-    int Offset;
+    int ID <bgcolor=cAqua>;
+    int Offset <bgcolor=cBlue>;
 };
 
 struct ModelFooter{
     EntryType Entry;
-} modelFooter[modelHeader.NumOfEntrys] <optimize=true,pos=modelHeader.HeaderOffset, bgcolor=cLtYellow>;
+} modelFooter[modelHeader.NumOfEntrys] <optimize=true,pos=modelHeader.HeaderOffset, bgcolor=cBlack>;
 
 for (int i = 0; i < modelHeader.NumOfEntrys; i++) { 
     
@@ -69,27 +84,27 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
     // RENDERGRAPH
     if(modelFooter[i].Entry.ID == 0){ 
         struct RenderMan{
-            int ModelInfoOffset;
+            int ModelInfoOffset <bgcolor=cBlue>;
             int Unk1;
             int Unk2;
             int Unk3;
-            int TextureNamesOffset;
-            int TextureMapsOffset;
-            int NumberOfTextures;
+            int TextureNamesOffset <bgcolor=cBlue>;
+            int TextureMapsOffset <bgcolor=cBlue>;
+            int NumberOfTextures <bgcolor=cYellow>;
             int unk5;
-            int morphTargetTableOffset;
-            int morphTargetTableCount;
-            int inputDefinition1TableOffset;
-            int inputDefinition1TableNumber;
-            int inputDefinitionSize;
-            int inputDefinition2TableOffset;
-            int inputDefinition2TableNumber;
+            int morphTargetTableOffset <bgcolor=cBlue>;
+            int morphTargetTableCount <bgcolor=cYellow>;
+            int inputDefinition1TableOffset <bgcolor=cBlue>;
+            int inputDefinition1TableNumber <bgcolor=cYellow>;
+            int inputDefinitionSize <bgcolor=cDkRed>;
+            int inputDefinition2TableOffset <bgcolor=cBlue>;
+            int inputDefinition2TableNumber <bgcolor=cYellow>;
             int unk10;
-            int shadowMapNames;
-            int NumberOfshadowMaps;
+            int shadowMapNames <bgcolor=cBlue>;
+            int NumberOfshadowMaps <bgcolor=cYellow>;
             int unk13;
-            int unk14; //Offset
-            int unk14Count;
+            int unk14 <bgcolor=cBlue>;
+            int unk14Count <bgcolor=cYellow>;
             int unk16; //Offset
             int unk16Count;
             int unk17;
@@ -100,21 +115,21 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             int unk22;
             int unk23;
             int unk24;
-            int unk25;
-            int unk26;
+            int ClothOffset <bgcolor=cBlue>;
+            int ClothCount <bgcolor=cYellow>;
             int unk27;
             int unk28;
             int unk29;
-            float unk30;
-            float unk31;
+            float unk30 <bgcolor=cGreen>;
+            float unk31 <bgcolor=cGreen>;
             int unk32;
-        } renderman <pos=modelFooter[i].Entry.Offset, bgcolor=cLtRed>;
+        } renderman <pos=modelFooter[i].Entry.Offset, bgcolor=cBlack>;
         
         //Texture Names
         if(renderman.TextureNamesOffset != 0){
             struct TextureNamesOffsetEntry {
-                int TextureOffset;
-            } textureNamesOffsetEntry[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureNamesOffset, bgcolor=cLtBlue>;
+                int TextureOffset <bgcolor=cBlue>;
+            } textureNamesOffsetEntry[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureNamesOffset, bgcolor=cBlack>;
             
             local string name1;
             
@@ -124,7 +139,7 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
                     SPrintf(name1, "TextureName%d", i);
                     
                     struct TextureNameStruct {
-                        char TextureName[128] <bgcolor=cLtGreen>;
+                        char TextureName[128] <bgcolor=cPurple>;
                     } textureNameStruct <name=name1, pos=textureNamesOffsetEntry[i].TextureOffset>;
                 }
             }
@@ -133,53 +148,121 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
         //Texture Maps
         if(renderman.TextureMapsOffset != 0){
             struct TextureMapTable{
-                int TextureMapOffset;
-            } textureMapTable[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureMapsOffset, bgcolor=cLtBlue>;
+                int TextureMapOffset <bgcolor=cBlue>;
+            } textureMapTable[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureMapsOffset, bgcolor=cBlack>;
             
             
             for (int i = 0; i < renderman.NumberOfTextures; i++) {
                 struct TextureMaps {
-                    string TextureMap <bgcolor=cLtGreen>;
+                    string TextureMap <bgcolor=cPurple>;
                 } textureMaps <name="TextureMapNames",pos=textureMapTable[i].TextureMapOffset>;
             }
         }
         
         // Input Definitions
         struct InputDefinitions1{
-            char InputDefinitionType1[renderman.inputDefinitionSize] <bgcolor=cLtYellow,optimize=true>;
+            char InputDefinitionType1[renderman.inputDefinitionSize] <bgcolor=cPurple,optimize=true>;
         }inputdefinitions1[renderman.inputDefinition1TableNumber] <optimize=true,pos=renderman.inputDefinition1TableOffset>;
         
         struct InputDefinitions2{
-            char InputDefinitionType2[renderman.inputDefinitionSize] <bgcolor=cLtGreen,optimize=true>;
+            char InputDefinitionType2[renderman.inputDefinitionSize] <bgcolor=cLtPurple,optimize=true>;
         }inputdefinitions2[renderman.inputDefinition2TableNumber] <optimize=true,pos=renderman.inputDefinition2TableOffset>;
         
         //Shadow Maps
         struct ShadowMapNamesOffsetEntry {
-            int ShadowMapOffset;
-        } shadowmapnamesOffsetEntry[renderman.NumberOfshadowMaps] <optimize=true,pos=renderman.shadowMapNames, bgcolor=cLtBlue>;
+            int ShadowMapOffset <bgcolor=cBlue>;
+        } shadowmapnamesOffsetEntry[renderman.NumberOfshadowMaps] <optimize=true,pos=renderman.shadowMapNames, bgcolor=cBlack>;
         
         for (int i = 0; i < renderman.NumberOfshadowMaps; i++) {
             struct ShadowMapNames {
-                string ShadowMapName <bgcolor=cLtGreen>;
+                string ShadowMapName <bgcolor=cPurple>;
             } shadowMapName <name="ShadowMapNames",pos=shadowmapnamesOffsetEntry[i].ShadowMapOffset>;
         }
         
         //Unk16
         if(renderman.unk16 != 0){
             struct Unk16{
-                char UnkChunk[72] <bgcolor=cPurple>;
+                char UnkChunk[72] <bgcolor=cWhite>;
             } unk16[renderman.unk16Count] <optimize=true,pos=renderman.unk16>;
         }
         
         //Unk14
         struct Unk14OffsetEntry {
             int Unk14Offset;
-        } unk14OffsetEntry[renderman.unk14Count] <optimize=true,pos=renderman.unk14, bgcolor=cLtBlue>;
+        } unk14OffsetEntry[renderman.unk14Count] <optimize=true,pos=renderman.unk14, bgcolor=cBlack>;
         
         for (int i = 0; i < renderman.unk14Count; i++) {
             struct Unk14 {
-                string Unk14String <bgcolor=cLtGreen>;
-            } unk14 <name="Unk14Strings",pos=unk14OffsetEntry[i].Unk14Offset>;
+                string Unk14String <bgcolor=cPurple>;
+            } unk14 <name="Unk14Strings",pos=unk14OffsetEntry[i].Unk14Offset, bgcolor=cBlack>;
+        }
+        
+        struct ClothOffsetEntry{
+            char Unk[8] <bgcolor=cWhite>;
+            int Offset1 <bgcolor=cBlue>;
+            int Size1  <bgcolor=cYellow>;
+            int Offset2 <bgcolor=cBlue>;
+            int Size2  <bgcolor=cYellow>;
+            int Offset3 <bgcolor=cBlue>;
+            int Size3  <bgcolor=cYellow>;
+        } clothOffsetEntry[renderman.ClothCount] <optimize=true,pos=renderman.ClothOffset>;
+        
+        
+        local struct Cloth_Info_1{
+            int Offset1 <bgcolor=cDkBlue>;
+            int Unk1 <bgcolor=cWhite>;
+            float x <bgcolor=cGreen>;
+            float y <bgcolor=cGreen>;
+            float z <bgcolor=cGreen>;
+            int Offset2 <bgcolor=cBlue>;
+            int Offset2Count <bgcolor=cYellow>;
+            int Unk3 <bgcolor=cWhite>;
+            int Offset3 <bgcolor=cBlue>;
+            int Unk4 <bgcolor=cWhite>;
+            int Unk5 <bgcolor=cWhite>;
+            int Unk6 <bgcolor=cWhite>;
+        };
+        local struct Cloth_Info_2{
+            int int1<bgcolor=cWhite>;
+            int int2<bgcolor=cWhite>;
+        };
+        local struct Cloth_Info_3(int Size){
+            char unk[Size]<bgcolor=cGray>;
+        };
+        local struct Cloth_Info_4{
+            char unk[16]<bgcolor=cLtGray>;
+        };
+        
+        local struct Cloth_Info_5{
+            char unk[4]<bgcolor=cWhite>;
+        };
+        local struct Cloth_Info_6{
+            char unk[6]<bgcolor=cGray>;
+        };
+        
+        for (int y = 0; y < renderman.ClothCount; y++) {
+           for (int a = 0; a < clothOffsetEntry[y].Size1; a++) {
+               FSeek(clothOffsetEntry[y].Offset1+a*48);
+               Cloth_Info_1 unk;
+               FSeek(unk.Offset1);
+               Cloth_Info_2 unk2;
+               if(unk.Offset2 != 0){
+                 FSeek(unk.Offset2);
+                 Cloth_Info_3 unk3(unk.Offset2Count*2);  
+               }
+               if(unk.Offset3 != 0){
+                 FSeek(unk.Offset3);
+                 Cloth_Info_4 unk4;  
+               }
+           }
+           for (int b = 0; b < clothOffsetEntry[y].Size2; b++) {
+               FSeek(clothOffsetEntry[y].Offset2+b*4);
+               Cloth_Info_5 unk;
+           }
+           for (int c = 0; c < clothOffsetEntry[y].Size3; c++) {
+               FSeek(clothOffsetEntry[y].Offset3+c*6);
+               Cloth_Info_6 unk;
+           }
         }
         
         // Entries typically follow after this header, their contents depend on the type.
@@ -191,41 +274,86 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
         // Type 5 is unknown for purpose, contains a base size of 8 bytes, followed by several 2 byte entries.
         // Type 6 and Type 7 is indice information.
         local struct ModelInfo {
-            uint8 Type;
-            uint8 Flag2;
-            uint8 Flag3;
-            uint8 ID;
-            int NextOffset;
-            int AdditonalOffset;
-            int LastOffset;
+            uint8 Type <bgcolor=cAqua>;
+            uint8 Flag2 <bgcolor=cRed>;
+            uint8 Flag3 <bgcolor=cRed>;
+            uint8 unk <bgcolor=cWhite>;
+            int NextOffset <bgcolor=cBlue>;
+            int AdditonalOffset <bgcolor=cDkBlue>;
+            int LastOffset <bgcolor=cBlue>;
         };
-        struct ModelVertDef
+        local struct ModelVertDef
         {
-            short unk1;
-            short unk2;
-            int unk3;
-            int vertexCount;
-            int dataOffset;
-            int vertexOffset;
-            int vertTableLength;
-            short entrySize;
-            short unk5;
+            short unk1 <bgcolor=cWhite>;
+            short unk2 <bgcolor=cWhite>;
+            int unk3 <bgcolor=cWhite>;
+            int vertexCount <bgcolor=cYellow>;
+            int dataOffset <bgcolor=cBlue>;
+            int vertexOffset <bgcolor=cBlue>;
+            int vertTableLength <bgcolor=cDkRed>;
+            short entrySize <bgcolor=cDkRed>;
+            short unk5 <bgcolor=cWhite>;
         };
         
-        struct ModelIndicesDef
+        local struct ModelIndicesDef
         {
             int unk1;
         
             // Not entirely sure about this, as some models load the indices fine and others don't.
-            int IndicesSize;
-            int IndicesCount;
-            int unk4;
-            int IndicesCount2;
-            int unk6;
-            int IndicesOffset;
-            char unk7[28];
-            int IndicesOffset2;
-            int IndicesOffset3;
+            int IndicesSize <bgcolor=cDkRed>;
+            int IndicesCount <bgcolor=cYellow>;
+            int unk4 <bgcolor=cWhite>;
+            int IndicesCount2 <bgcolor=cYellow>;
+            int unk6 <bgcolor=cWhite>;
+            int IndicesOffset <bgcolor=cBlue>;
+            char unk7[28] <bgcolor=cWhite>;
+            int IndicesOffset2 <bgcolor=cBlue>;
+            int IndicesOffset3 <bgcolor=cBlue>;
+        };
+        
+        local struct VertDef
+        {
+            int unk1 <bgcolor=cWhite>;
+            int unk2 <bgcolor=cWhite>;
+            int unk3 <bgcolor=cWhite>;
+            int unk4 <bgcolor=cWhite>;
+            int Shader1_Start <bgcolor=cBlue>;
+            int Shader1_End <bgcolor=cDkBlue>;
+            char Unk5[24] <bgcolor=cWhite>;
+            int VertDef_Start <bgcolor=cBlue>;
+            int VertDef_End <bgcolor=cDkBlue>;
+            int Shader2_Start <bgcolor=cBlue>;
+            int Shader2_End <bgcolor=cDkBlue>;
+            char Unk6[16] <bgcolor=cWhite>;
+            int Shader4_Start <bgcolor=cBlue>;
+            int Shader4_End <bgcolor=cDkBlue>;
+            int Shader3_Start <bgcolor=cBlue>;
+            int Shader3_End <bgcolor=cDkBlue>;
+        };
+        local struct FaceDef
+        {
+            int unk1 <bgcolor=cWhite>;
+            int unk2 <bgcolor=cWhite>;
+            int Shader1_Start <bgcolor=cBlue>;
+            int Shader1_End <bgcolor=cDkBlue>;
+            char Unk3[32] <bgcolor=cWhite>;
+            int Shader2_Start <bgcolor=cBlue>;
+            int Shader2_End <bgcolor=cDkBlue>;
+            char Unk4[16] <bgcolor=cWhite>;
+            int Shader4_Start <bgcolor=cBlue>;
+            int Shader4_End <bgcolor=cDkBlue>;
+            int Shader3_Start <bgcolor=cBlue>;
+            int Shader3_End <bgcolor=cDkBlue>;
+        };
+        
+        struct ShaderName(int size){
+            char name[size] <bgcolor=cPurple>;
+        };
+        struct ShaderName2(int size){
+            char name[size] <bgcolor=cLtPurple>;
+        };
+        struct VertDefBlock(int size){
+            char unk[size] <bgcolor=cWhite>;
         };
 
         
@@ -241,9 +369,25 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             ModelInfo mi <pos=currentOffset, bgcolor=GetModelInfoTypeColor(mi.Type)>;
             LocalOffset = currentOffset + 16;
             if(mi.Type == 2){
-              ModelVertDef vert <pos=LocalOffset, bgcolor=cLtRed>;
-            }else if(mi.Type == 6 || mi.Type == 7){
-              ModelIndicesDef indices <pos=LocalOffset, bgcolor=cLtBlue>;
+              ModelVertDef vert <pos=LocalOffset, bgcolor=cBlack>;
+            }
+            else if(mi.Type == 6 || mi.Type == 7){
+              ModelIndicesDef indices <pos=LocalOffset, bgcolor=cBlack>;
+            }
+            else if(mi.Type == 1){
+              VertDef Vert <pos=LocalOffset, bgcolor=cBlack>;
+              ShaderName shader1(Vert.Shader1_End - Vert.Shader1_Start) <pos=Vert.Shader1_Start>;
+              ShaderName shader2(Vert.Shader2_End - Vert.Shader2_Start) <pos=Vert.Shader2_Start>;
+              ShaderName shader3(Vert.Shader3_End - Vert.Shader3_Start) <pos=Vert.Shader3_Start>;
+              ShaderName shader4(Vert.Shader4_End - Vert.Shader4_Start) <pos=Vert.Shader4_Start>;
+              VertDefBlock unk(Vert.VertDef_End - Vert.VertDef_Start) <pos=Vert.VertDef_Start>;
+            }
+            else if(mi.Type == 3){
+              FaceDef Face <pos=LocalOffset, bgcolor=cBlack>;
+              ShaderName2 shader1(Face.Shader1_End - Face.Shader1_Start) <pos=Face.Shader1_Start>;
+              ShaderName2 shader2(Face.Shader2_End - Face.Shader2_Start) <pos=Face.Shader2_Start>;
+              ShaderName2 shader3(Face.Shader3_End - Face.Shader3_Start) <pos=Face.Shader3_Start>;
+              ShaderName2 shader4(Face.Shader4_End - Face.Shader4_Start) <pos=Face.Shader4_Start>;
             }
             
             // Queue both Next and Additional offsets
@@ -271,7 +415,7 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
         int Entry2Count <bgcolor=cLtBlue,pos=modelFooter[i].Entry.Offset>;
         local int EntrysOffset = modelFooter[i].Entry.Offset + 4;
         struct UnkEntry5{
-            char Data[52] <bgcolor=cPurple>;
+            char Data[52] <bgcolor=cWhite>;
         } unkEntry5[Entry2Count] <optimize=true,pos=EntrysOffset>;
     }
     if(modelFooter[i].Entry.ID == 8){
@@ -296,7 +440,7 @@ string GetModelInfoTypeName(uint8 &Type,int Offset){
        case 0  : result = "Empty"; break;
        case 1  : result = "Model Definition"; break;
        case 2  : result = "Vertice Information"; break;
-       case 3  : result = "Unknown Type"; break;
+       case 3  : result = "Indice Definition"; break;
        case 4  : result = "Unknown Type"; break;
        case 5  : result = "Unknown Type"; break;
        case 6  : result = "Indice Information"; break;
@@ -311,6 +455,7 @@ string GetModelInfoTypeName(uint8 &Type,int Offset){
 }
 int GetModelInfoTypeColor(uint8 &Type){
     local int result = cWhite;
+    return cBlack;
     switch(Type){
        case 0  : result = cBlack; break;
        case 1  : result = cWhite; break;

@@ -1,0 +1,142 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: aid_loctext
+//   Authors: SolarCookies - OlieGamerTV
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct Header{
+    int offset;
+    int unk1    <bgcolor=cWhite>;
+    int unk2    <bgcolor=cWhite>;
+}header <bgcolor=cYellow>;
+
+FSeek(header.offset);
+
+//0x00 4 byte Magic Header (Should be either LSBL or LBSL)
+//0x04 ???
+//0x08 ???
+//0x0C ???
+//0x10 Tags Table Offset (Int32, Relative to LSBL Header)
+//0x14 Comments Label Table Offset (Int32, Relative to LSBL Header)
+//0x18 ??? Table Offset (Int32, Relative to LSBL Header)
+struct LSBL{
+    char MAGIC[4];
+    int Unk1    <bgcolor=cWhite>;
+    int Unk2    <bgcolor=cWhite>;
+    int Unk3    <bgcolor=cWhite>;
+    int TagsTableOffset;
+    int CommentsLabelTableOffset;
+    int TableOffset;
+}lsbl <bgcolor=cBlue>;
+
+//--- String Table Header ---
+//0x00 Total Section Length (Int32)
+//0x04 Total Strings (Int32)
+//0x08 ???
+//Following this is the String Info Table.
+struct StringTableHeader{
+    int TotalSectionLength;
+    int TotalStrings;
+}stringtableheader <bgcolor=cDkRed>;
+
+//--- String Info Table ---
+//Depending on the magic, this and the following section will either be in Big Endian (LBSL) or Little Endian (LSBL)
+//Each entry for the total of strings you have is the following:
+//0x00 String ID (Int16)
+//0x04 String Offset (Int32, For some bizarre reason. the last offset is stored as little endian for LBSL.)
+local struct StringInfo{
+    short ID;
+    int Offset;
+};
+
+struct StringInfoTable{
+    StringInfo info;
+}stringinfotable[stringtableheader.TotalStrings+1] <bgcolor=cGreen>;
+
+local struct UnicodeString{
+  wstring string1 <bgcolor=cDkPurple>;  
+};
+
+local int uni = header.offset + 36 + (6 * (stringtableheader.TotalStrings + 1));
+local int stringoffset = uni;
+for (int i = 0; i < stringtableheader.TotalStrings; i++) {
+    stringoffset = uni + (stringinfotable[i].info.Offset * 2);
+    FSeek(stringoffset);
+    UnicodeString strings <name="Strings">;
+}
+
+
+local int TAGS = lsbl.TagsTableOffset+header.offset;
+FSeek(TAGS);
+
+//--- Tags Table ---
+//This table is always stored as Little Endian.
+//0x00 Total Section Length (Int32)
+//0x04 Total Tags (Int32)
+
+struct TagsTable{
+  int TotalSectionLength;  
+  int TotalTags;  
+}tagsTable <bgcolor=cRed>;
+
+//--- Tags Info Table ---
+//This table is always stored as Little Endian.
+//Each entry for the total of strings you have is the following:
+//0x00 Tag ID (Int16) (May not be entirely correct)
+//0x02 ??? (Int16)
+//0x04 Tag String Offset (Int32, relative to the start of the tag strings table.)
+//Following this is a table of tag strings, these ones are just straight plain text and can be read until a null char is hit.
+local struct TagsInfo{
+    short ID;
+    short unk <bgcolor=cWhite>;
+    int TagStringOffset;
+};
+
+struct TagsInfoTable{
+    TagsInfo info;
+}tagInfoTable[tagsTable.TotalTags] <bgcolor=cLtRed>;
+
+//for (int i = 0; i < tagsTable.TotalTags; i++) {
+//    FSeek(TAGS+8+tagInfoTable[i].info.TagStringOffset);
+//    string Tag;
+//}
+
+local struct Tag{
+    string TagName <bgcolor=cPurple>;
+};
+
+local int tagoffset = TAGS + 8 + (tagsTable.TotalTags*8);
+local int offset = tagoffset;
+for (int i = 0; i < tagsTable.TotalTags; i++) {
+    offset = tagoffset + tagInfoTable[i].info.TagStringOffset;
+    FSeek(offset);
+    Tag tagNames <name="TagNames">;
+}
+
+//--- Comments Table ---
+//0x00 Total Section Length (Int32)
+//0x04 Total Tags (Int32)
+
+//--- Comments Info Table ---
+//Each entry for the total of strings you have is the following:
+//0x01 String ID (Int16)
+//0x04 Comment Offset (Int32, relative to the start of the comment strings table.)
+//Following this is a table of comment strings, these ones are just straight plain text and can be read until a null char is hit.
+//The string ID correlates to the string before the actual target.
+
+if(lsbl.TableOffset != 0){
+    local int tableoffset = lsbl.TableOffset + header.offset;
+    FSeek(tableoffset);
+    struct Table{
+       int SizeOftable <bgcolor=cWhite>;
+       int unk2 <bgcolor=cWhite>;
+       char unk3[SizeOftable-8] <bgcolor=cWhite>; 
+    }table;
+}
