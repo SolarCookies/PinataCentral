@@ -265,6 +265,7 @@ namespace caff {
 		if (VREFTypeCheck(VREFBYTES)) {
 			vref.VGPU_Uncompressed_Size = 0;
 			vref.VGPU_Compressed_Size = 0;
+			//vref.DataOnly = true;
 			vref.NameBlockOffset = 43 + (caff.ChunkCount * 4);
 			vref.InfoBlockOffset = Zlib::ConvertBytesToInt(VREFBYTES, 39, BigEndian) + vref.NameBlockOffset;
 		}
@@ -297,6 +298,28 @@ namespace caff {
 				return vBYTES();
 			}
 			return VDAT;
+		}
+	}
+
+	inline static vBYTES Get_VGPU(vBYTES& CAFFBYTES, CAFF& caff, VREF& vref) {
+		if (vref.DataOnly) return vBYTES(); //Data only CAFFs do not have VGPU data
+
+		//If the VGPU offset is 0 then we can assume that the VGPU is not present in the CAFF
+		if (vref.VGPU_Offset == 0 || vref.VGPU_Compressed_Size == 0 || vref.VGPU_Uncompressed_Size == 0) {
+			return vBYTES();
+		}
+		vBYTES CompressedVGPU = Walnut::OpenFileDialog::CopyBytes(CAFFBYTES, vref.VGPU_Offset, vref.VGPU_Compressed_Size);
+		if (vref.VGPU_Compressed_Size == vref.VGPU_Uncompressed_Size) {
+			//If the compressed size is equal to the uncompressed size then we can assume that the VGPU is not compressed
+			return CompressedVGPU;
+		}
+		else {
+			vBYTES VGPU = Zlib::DecompressData(CompressedVGPU, vref.VGPU_Uncompressed_Size);
+			if (VGPU.size() != vref.VGPU_Uncompressed_Size) {
+				std::cout << "VGPU Decompression failed, size mismatch!" << std::endl;
+				return vBYTES();
+			}
+			return VGPU;
 		}
 	}
 

@@ -48,6 +48,17 @@ namespace pkg {
 		return Zlib::DecompressData(COMPRESSEDVREF, C.VREF_Uncompressed_Size);
 	}
 
+	inline static vBYTES GetCAFFBytes(std::ifstream& file, CAFF C) {
+		//Save current position
+		uint32_t CurrentPosition = file.tellg();
+		//Goto CAFF offset
+		Walnut::OpenFileDialog::SeekBeg(file, C.CAFF_Info.Offset);
+		vBYTES CAFFBytes = Walnut::OpenFileDialog::Read_Bytes(file, C.CAFF_Info.Size);
+		//Restore position
+		Walnut::OpenFileDialog::SeekBeg(file, CurrentPosition);
+		return CAFFBytes;
+	}
+
 	inline static vBYTES GetVDATBYTES(uint32_t CAFFNumber, PKG package, std::ifstream& file) {
 		return Zlib::DecompressData(Walnut::OpenFileDialog::Read_Bytes(file, package.VREFs[CAFFNumber].VDAT_Offset + package.CAFF_Infos[CAFFNumber].Offset, package.VREFs[CAFFNumber].VDAT_Compressed_Size), package.VREFs[CAFFNumber].VDAT_Uncompressed_Size);
 	}
@@ -147,6 +158,11 @@ namespace pkg {
 			CAFF_Version = Zlib::ConvertBytesToString(CAFF_Version_B);
 			caff.CAFF_Version = CAFF_Version;
 
+			if(caff.CAFF_Version.find("CAFF") == std::string::npos) {
+				Log("Invalid CAFF Version: " + CAFF_Version + " on CAFF Number: " + std::to_string(C.Number) + " in PKG: " + pkg.path, EType::Error);
+				continue;
+			}
+
 			Log("CAFF Version: " + CAFF_Version, EType::Normal);
 
 			//forward 3 bytes of null data
@@ -196,13 +212,13 @@ namespace pkg {
 
 			//VLUT Compressed Size (4 bytes)
 			caff.VLUT_Compressed_Size = Zlib::ConvertBytesToInt(Walnut::OpenFileDialog::Read_Bytes(file, 4), pkg.IsBigEndian);
-			std::cout << "VLUT Compressed Size: " << caff.VLUT_Compressed_Size << std::endl;
+			//std::cout << "VLUT Compressed Size: " << caff.VLUT_Compressed_Size << std::endl;
 
 			Log("VLUT Compressed Size: " + std::to_string(caff.VLUT_Compressed_Size), EType::Normal);
 
 			//VLUT Offset is VRef Offset + VRef Compressed Size
 			caff.VLUT_Offset = caff.VREF_Offset + caff.VREF_Compressed_Size;
-			std::cout << "VLUT Offset: " << caff.VLUT_Offset << std::endl;
+			//std::cout << "VLUT Offset: " << caff.VLUT_Offset << std::endl;
 
 			Log("VLUT Offset: " + std::to_string(caff.VLUT_Offset), EType::Normal);
 
