@@ -147,28 +147,11 @@ void ExtractPage::render(GUI& gui)
 						vgpuFile.write((char*)chunkVGpu.data(), chunkVGpu.size());
 						vgpuFile.close();
 					}
-					chunkVGpu.clear();
-					chunkVGpu.shrink_to_fit();
 				}
-				//cleanup
-				chunkVDat.clear();
-				chunkVDat.shrink_to_fit();
-				
-				
 			}
-
-			CAFFBytes.clear();
-			CAFFBytes.shrink_to_fit();
 			
-			FullVDAT.clear();
-			FullVDAT.shrink_to_fit();
-			
-			FullVGPU.clear();
-			FullVGPU.shrink_to_fit();
-			
-			pkgfile.close();
 		}
-
+		pkgfile.close();
 		PKGIndex++;
 
 		if (PKGIndex >= totalPKGs) {

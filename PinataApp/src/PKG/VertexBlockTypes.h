@@ -118,7 +118,7 @@ inline VertexBlock ConstructVertexBlockFromSize(int size, bool bigEndian, vBYTES
 			Vert.hasTexCoord = true;
 		}
 		else if (size == 48) {
-			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2)); // maybe sometimes 20?
+			memcpy(&Vert.texCoord, &block[28], sizeof(Vector2)); // maybe sometimes 20? 28 I think 20 is the fur UVs
 			Vert.hasTexCoord = true;
 		}
 		else if (size == 44) {
