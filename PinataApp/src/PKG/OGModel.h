@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <fbxsdk.h>
 #include "../Utils/ZLibHelpers.h"
 #include "../Utils/OpenFileDialog.h"
 #include "../Utils/Log.hpp"
@@ -129,7 +130,89 @@ inline static int offsetCount = 0;
 
 namespace model {
 
+    inline static void exportFBX(
+        const std::vector<std::vector<Vertex1>>& objectsVerts,  // multiple meshes
+        const std::vector<std::vector<uint32_t>>& objectsIndices,
+        const std::string& filename)
+    {
+        // 1. Initialize SDK Manager and Scene
+        FbxManager* manager = FbxManager::Create();
+        FbxIOSettings* ios = FbxIOSettings::Create(manager, IOSROOT);
+        manager->SetIOSettings(ios);
 
+        FbxScene* scene = FbxScene::Create(manager, "MyScene");
+        FbxNode* rootNode = scene->GetRootNode();
+
+        // 2. Loop over objects
+        for (size_t objIndex = 0; objIndex < objectsVerts.size(); ++objIndex) {
+            const auto& verts = objectsVerts[objIndex];
+            const auto& indices = objectsIndices[objIndex];
+
+            // Create mesh + node
+            std::string meshName = "Mesh_" + std::to_string(objIndex);
+            FbxMesh* mesh = FbxMesh::Create(scene, meshName.c_str());
+            FbxNode* node = FbxNode::Create(scene, meshName.c_str());
+            node->SetNodeAttribute(mesh);
+            rootNode->AddChild(node);
+
+            // Allocate control points
+            mesh->InitControlPoints((int)verts.size());
+            FbxVector4* ctrlPoints = mesh->GetControlPoints();
+            for (size_t i = 0; i < verts.size(); i++) {
+                ctrlPoints[i] = FbxVector4(verts[i].position.x,
+                    verts[i].position.y,
+                    verts[i].position.z);
+            }
+
+            // Normals
+            FbxLayer* layer = mesh->GetLayer(0);
+            if (!layer) {
+                mesh->CreateLayer();
+                layer = mesh->GetLayer(0);
+            }
+
+            FbxLayerElementNormal* normalElement = FbxLayerElementNormal::Create(mesh, "");
+            normalElement->SetMappingMode(FbxLayerElement::eByControlPoint);
+            normalElement->SetReferenceMode(FbxLayerElement::eDirect);
+            for (const auto& v : verts) {
+                normalElement->GetDirectArray().Add(FbxVector4(v.normal.x, v.normal.y, v.normal.z));
+            }
+            layer->SetNormals(normalElement);
+
+            // UVs
+            FbxLayerElementUV* uvElement = FbxLayerElementUV::Create(mesh, "UVSet");
+            uvElement->SetMappingMode(FbxLayerElement::eByControlPoint);
+            uvElement->SetReferenceMode(FbxLayerElement::eDirect);
+            for (const auto& v : verts) {
+                uvElement->GetDirectArray().Add(FbxVector2(v.texCoord.u, v.texCoord.v));
+            }
+            layer->SetUVs(uvElement, FbxLayerElement::eTextureDiffuse);
+
+            // Faces (triangles)
+            for (size_t i = 0; i < indices.size(); i += 3) {
+                if (i + 2 < indices.size()) {
+                    mesh->BeginPolygon();
+                    mesh->AddPolygon(indices[i]);
+                    mesh->AddPolygon(indices[i + 1]);
+                    mesh->AddPolygon(indices[i + 2]);
+                    mesh->EndPolygon();
+                }
+            }
+        }
+
+        // 3. Export to FBX file
+        int fileFormat = manager->GetIOPluginRegistry()->GetNativeWriterFormat();
+        FbxExporter* exporter = FbxExporter::Create(manager, "");
+        if (!exporter->Initialize(filename.c_str(), fileFormat, manager->GetIOSettings())) {
+            throw std::runtime_error("Failed to initialize FBX exporter");
+        }
+
+        exporter->Export(scene);
+        exporter->Destroy();
+
+        // 4. Cleanup
+        manager->Destroy();
+    }
 
     inline static void exportOBJ(std::vector<Vertex1> verts, std::vector<uint32_t> indices, std::string& filename)
     {
@@ -307,6 +390,9 @@ namespace model {
 
         std::vector<ModelVertDef> verts;
         std::vector<ModelIndicesDef> indices;
+
+        std::vector<std::vector<Vertex1>> objectsVerts;
+        std::vector<std::vector<uint32_t>> objectsIndices;
 
         //Main Model Traversal Loop
         while (offsetCount > 0) {
@@ -501,12 +587,12 @@ namespace model {
             Log("End of Indices: " + std::to_string(CurrentIndiceOffset), EType::PURPLE);
 
 
-            std::string desktopPath;
-            char path[MAX_PATH];
-            if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_DESKTOP, nullptr, 0, path))) {
-                desktopPath = std::string(path);
-            }
 
+			//add to objectsVerts and objectsIndices
+			objectsVerts.push_back(vertices1);
+            objectsIndices.push_back(indices1);
+
+			/*  //OLD OBJ EXPORTER/IMPORTER
             exportOBJ(vertices1, indices1, desktopPath + "/model_" + std::to_string(y) + ".obj");
 
             //If model_MOD.obj Exists, make a modded vgpu file with the new vertices
@@ -543,9 +629,18 @@ namespace model {
                     }
                 }
             }
+            */
 
             y++;
         }
+
+        std::string desktopPath;
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_DESKTOP, nullptr, 0, path))) {
+            desktopPath = std::string(path);
+        }
+
+		exportFBX(objectsVerts, objectsIndices, desktopPath + "/model.fbx");
     }
 
 
