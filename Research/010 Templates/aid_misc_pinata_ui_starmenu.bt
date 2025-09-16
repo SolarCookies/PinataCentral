@@ -1,0 +1,23 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: aid_misc_pinata_ui_starmenu
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct StarMenuLeaf{
+    int unk1 <bgcolor=cWhite>;
+    int unk2 <bgcolor=cWhite>;
+    int unk3 <bgcolor=cWhite>;
+    char texturename[128] <bgcolor=cDkPurple>;
+    char OptionName[196] <bgcolor=cPurple>;
+    //char data[336];
+}star[8] <bgcolor=cLtBlue>;
+
+string Loctext <bgcolor=cLtRed>;

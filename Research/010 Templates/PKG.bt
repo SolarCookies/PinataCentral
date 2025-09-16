@@ -1,0 +1,49 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: .pkg
+//   Authors: SolarCookies
+//   Version: 1.0
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct pkgHeader{
+    int version <bgcolor=cPurple>;
+    int caffCount <bgcolor=cLtRed>;
+}header;
+
+struct CaffInfos{
+    int unk1 <bgcolor=cWhite>;
+    int offset <bgcolor=cLtBlue>;
+    int size <bgcolor=cYellow>;
+} caffInfos[header.caffCount];
+
+char unk <bgcolor=cBlack>;
+
+
+local string name1;
+
+for (int i = 0; i < header.caffCount; i++) {
+    FSeek(caffInfos[i].offset);
+    
+    struct CAFF{
+       char Magic[4] <bgcolor=cDkPurple>;
+       char Version[16] <bgcolor=cPurple>;
+       int VREF_Offset <bgcolor=cLtBlue>; //20
+       int Checksum <bgcolor=cRed>;
+       int ChunkCount <bgcolor=cLtYellow>; //28
+       int ChunkSpreadCount <bgcolor=cLtYellow>; //32
+       char Unk2[44] <bgcolor=cWhite>;
+       int VREF_Uncompressed_Size <bgcolor=cLtGreen>; //80
+       char Unk3[12] <bgcolor=cWhite>;
+       int VREF_Compressed_Size <bgcolor=cDkGreen>; //96
+       int VLUT_Uncompressed_Size <bgcolor=cLtGreen>; //100
+       char Unk4[12] <bgcolor=cWhite>;
+       int VLUT_Compressed_Size <bgcolor=cDkGreen>; //116
+       local int VLUT_Offset = VREF_Offset + VREF_Compressed_Size;
+    } CAFFs <name="CAFF",pos=caffInfos[i].offset>;
+}

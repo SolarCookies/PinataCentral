@@ -1,0 +1,19 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: 2.78
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct pip{
+    int unk1 <bgcolor=cWhite>;
+    int unk2 <bgcolor=cWhite>;
+    char Loctext[136] <bgcolor=cDkPurple>;
+    char SoundName[136] <bgcolor=cPurple>;
+}Pip;

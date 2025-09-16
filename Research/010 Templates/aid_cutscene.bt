@@ -1,0 +1,108 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: 
+//   Authors: SolarCookies
+//   Version: 1.0
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+local struct Vect3{
+   float x <bgcolor=cRed>;
+   float y  <bgcolor=cGreen>;
+   float z <bgcolor=cBlue>;
+};
+
+local struct Loc{
+   float x <bgcolor=cDkRed>;
+   float y  <bgcolor=cDkGreen>;
+   float z <bgcolor=cDkBlue>;
+};
+
+local struct Scale3{
+   float x <bgcolor=cLtRed>;
+   float y  <bgcolor=cLtGreen>;
+   float z <bgcolor=cLtBlue>;
+};
+
+struct Header{
+  string animationHeader <bgcolor=cPurple>;
+  string animationVersion <bgcolor=cDkPurple>;
+  short unk1;
+  int unk2;
+  short unk3;
+  short BoneCount <bgcolor=cRed>;
+  short FrameCount <bgcolor=0xFF004D>;
+  int Quat_BitStream <bgcolor=cGreen>;
+  int RootMotionOffset <bgcolor=cRed>;
+  int poseTableOffset <bgcolor=cLtBlue>;
+  int unk7 <bgcolor=0x00A8FF>;
+  int NamesTableOffset <bgcolor=0x004DFF>;
+  short controlPointsCount <bgcolor=cYellow>;
+  short morphTargetsCount <bgcolor=cGreen>;
+  int unk9;
+  float unk10;
+  int bitStreamOffset <bgcolor=cBlue>;
+}header <bgcolor=cBlack>;
+
+struct QuatBitStream32{
+    string stream <bgcolor=cDkGreen>;
+    char unk[(header.bitStreamOffset - header.Quat_BitStream) - 17] <bgcolor=cLtGreen>;
+}quat <bgcolor=cBlack>;
+
+FSeek(header.bitStreamOffset);
+struct BitStream32{
+    string stream <bgcolor=cDkBlue>; 
+    char unk[(header.unk7 - header.bitStreamOffset) - 12] <bgcolor=cLtBlue>;  
+}bit <bgcolor=cBlack>;
+
+FSeek(header.unk7);
+
+struct Unk7{
+    char unk[header.RootMotionOffset - header.unk7] <bgcolor=0x00A8FF>;
+}unk7 <bgcolor=cBlack>;
+
+local struct RootMotionFrame{
+    //Vect3 location; // not on some models
+    float x <bgcolor=cRed>;
+    //Scale3 scale; // not on some models
+};
+
+local struct BoneData{
+    Loc Loc1; // Local Pos
+    Loc Loc2; // Global Pos
+    short Parent <bgcolor=cYellow>;
+    short unk1;
+    short unk3;
+    short Id <bgcolor=cWhite>; 
+    short unk5;
+    short unk6;
+};
+
+struct RootMotion{
+    //Vect3 spawnLocation;
+    char unkheader[28+12];
+    int DataOffset <bgcolor=cLtYellow>; 
+    float UnkFloat;
+    RootMotionFrame RootMotionData[header.FrameCount];
+    BoneData Bones[header.BoneCount];
+}rootmotion  <bgcolor=cBlack>;
+
+struct NamesHeader{
+  int Count <bgcolor=cGreen>;
+  int Offset <bgcolor=cYellow>;
+  int unk1 <bgcolor=cBlack>;
+  int unk2 <bgcolor=cBlack>; 
+}namesHeader;
+
+local struct Name{
+    int offset <bgcolor=cLtRed>;
+    int unk1 <bgcolor=cBlack>;
+    int Id <bgcolor=cWhite>;
+};
+
+Name Names[namesHeader.Count] <pos=namesHeader.Offset, optimize=true>;

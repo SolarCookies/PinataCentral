@@ -1,0 +1,21 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+
+local struct Bone{
+    string name;
+};
+
+Bone Bones[113] <optimize=false, bgcolor=cDkRed>;
+Bone Controls[10] <optimize=false, bgcolor=cDkGreen>;
+Bone Morphs[28] <optimize=false, bgcolor=cDkBlue>;

@@ -1,0 +1,105 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: .vref
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+int CheckType(){
+    FSeek(34); //If "data" is at offset 34 we have a data only caff file
+    local int Type;
+    FSeek(0);
+    if(Type == 1635017060){
+        return true;
+    }
+    if(Type == 1684108385){ //Big
+        return true;
+    }
+    //else return false
+    return false;
+}
+
+local int Type = CheckType();
+local int ChunkCount = 3465; //Example for caff 1 in pkg 1 but needs to be set otherwise
+
+struct Header{
+    char Unk1[9] <bgcolor=cWhite>;
+    int VDAT_Uncompressed_Size <bgcolor=cLtGreen>;
+    char Unk2[16] <bgcolor=cWhite>;
+    int VDAT_Compressed_Size <bgcolor=cDkGreen>;
+    if(Type == 0){
+        char Unk3[9] <bgcolor=cWhite>;
+        int VGPU_Uncompressed_Size <bgcolor=cLtGreen>;
+        char Unk4[16] <bgcolor=cWhite>;
+        int VGPU_Compressed_Size <bgcolor=cDkGreen>;
+    }
+    char data[5] <bgcolor=cPurple>;
+    char null1[1] <bgcolor=cWhite>;
+    if(Type == 0){
+        char gpu[4] <bgcolor=cDkPurple>;
+        char null2[1] <bgcolor=cWhite>;
+    }
+    int InfoBlockOffset <bgcolor=cBlue>;
+    local int headersize = 43;
+    if(Type == 0){
+        headersize = 81;
+    }
+}header <bgcolor=cBlack>;
+
+struct NameInfos{
+    int offset <bgcolor=cLtBlue>;
+}nameinfos[ChunkCount];
+
+local int flipflop = false;
+local struct String{
+    if(flipflop){
+        string test <bgcolor=cPurple>;
+    }else{
+        string test <bgcolor=cDkPurple>;
+    }
+};
+
+local int namesOffset = header.headersize + (ChunkCount*4);
+
+for(int i; i < ChunkCount; i++){
+    FSeek(nameinfos[i].offset+namesOffset);
+    String test;
+    flipflop = !flipflop;
+}
+
+int unk1 <bgcolor=cWhite>;
+local int Count = 0;
+local int LastID = 0;
+local struct ChunkInfo{
+    int ID  <bgcolor=cRed>;
+    if(LastID == ID){
+        int Offset <bgcolor=cDkBlue>;
+        int Size <bgcolor=cDkGreen>;
+        char TypeIndex<bgcolor=cPurple>; //1=data 2=gpu
+        char FileData2 <bgcolor=cGray>;
+    }else{
+        int Offset <bgcolor=cLtBlue>;
+        int Size <bgcolor=cLtGreen>;
+        char TypeIndex<bgcolor=cDkRed>; //1=data 2=gpu
+        char FileData2 <bgcolor=cWhite>;
+    }
+};
+
+
+for(int i; i < ChunkCount; i++){
+    ChunkInfo test;
+    if(test.ID == i && Count >= 1){
+        i = i-1; 
+        Count = 0;
+    }
+    if(test.ID != i){
+        Count = 1;
+    }
+    LastID = test.ID;
+}

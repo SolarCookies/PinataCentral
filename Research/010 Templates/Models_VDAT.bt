@@ -125,6 +125,29 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             int unk32;
         } renderman <pos=modelFooter[i].Entry.Offset, bgcolor=cBlack>;
         
+        if(renderman.morphTargetTableCount != 0){
+            FSeek(renderman.morphTargetTableOffset);
+            struct MorphTargetTable{
+                int block1;
+                int block2;
+                int number;
+            } morphTargetTable[renderman.morphTargetTableCount] <bgcolor=cBlue>;
+            
+            local int Offset1 = renderman.morphTargetTableOffset + (12*renderman.morphTargetTableCount);
+            for (int e = 0; e < renderman.morphTargetTableCount; e++) {
+                FSeek(morphTargetTable[e].block1);
+                Offset1 = morphTargetTable[e].block1;
+                for (int y = 0; y < morphTargetTable[e].number; y++) {
+                    
+                    int Offset2 <bgcolor=cBlue>;
+                    Offset1 += 4;
+                    Printf( "%d\n", Offset2 );
+                    struct MORPHTs {
+                        string MORPHt <bgcolor=cDkPurple>;
+                    } MORPHts <name="MORPHt",pos=Offset2>;
+                }
+            }
+        }
         //Texture Names
         if(renderman.TextureNamesOffset != 0){
             struct TextureNamesOffsetEntry {
@@ -133,14 +156,14 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             
             local string name1;
             
-            for (int i = 0; i < renderman.NumberOfTextures; i++) {
-                if(textureNamesOffsetEntry[i].TextureOffset != 0){
+            for (int g = 0; g < renderman.NumberOfTextures; g++) {
+                if(textureNamesOffsetEntry[g].TextureOffset != 0){
                     
-                    SPrintf(name1, "TextureName%d", i);
+                    SPrintf(name1, "TextureName%d", g);
                     
                     struct TextureNameStruct {
                         char TextureName[128] <bgcolor=cPurple>;
-                    } textureNameStruct <name=name1, pos=textureNamesOffsetEntry[i].TextureOffset>;
+                    } textureNameStruct <name=name1, pos=textureNamesOffsetEntry[g].TextureOffset>;
                 }
             }
         }
@@ -152,10 +175,10 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             } textureMapTable[renderman.NumberOfTextures] <optimize=true,pos=renderman.TextureMapsOffset, bgcolor=cBlack>;
             
             
-            for (int i = 0; i < renderman.NumberOfTextures; i++) {
+            for (int t = 0; t < renderman.NumberOfTextures; t++) {
                 struct TextureMaps {
                     string TextureMap <bgcolor=cPurple>;
-                } textureMaps <name="TextureMapNames",pos=textureMapTable[i].TextureMapOffset>;
+                } textureMaps <name="TextureMapNames",pos=textureMapTable[t].TextureMapOffset>;
             }
         }
         
@@ -173,10 +196,10 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             int ShadowMapOffset <bgcolor=cBlue>;
         } shadowmapnamesOffsetEntry[renderman.NumberOfshadowMaps] <optimize=true,pos=renderman.shadowMapNames, bgcolor=cBlack>;
         
-        for (int i = 0; i < renderman.NumberOfshadowMaps; i++) {
+        for (int y = 0; y < renderman.NumberOfshadowMaps; y++) {
             struct ShadowMapNames {
                 string ShadowMapName <bgcolor=cPurple>;
-            } shadowMapName <name="ShadowMapNames",pos=shadowmapnamesOffsetEntry[i].ShadowMapOffset>;
+            } shadowMapName <name="ShadowMapNames",pos=shadowmapnamesOffsetEntry[y].ShadowMapOffset>;
         }
         
         //Unk16
@@ -191,78 +214,80 @@ for (int i = 0; i < modelHeader.NumOfEntrys; i++) {
             int Unk14Offset;
         } unk14OffsetEntry[renderman.unk14Count] <optimize=true,pos=renderman.unk14, bgcolor=cBlack>;
         
-        for (int i = 0; i < renderman.unk14Count; i++) {
+        for (int f = 0; f < renderman.unk14Count; f++) {
             struct Unk14 {
                 string Unk14String <bgcolor=cPurple>;
-            } unk14 <name="Unk14Strings",pos=unk14OffsetEntry[i].Unk14Offset, bgcolor=cBlack>;
+            } unk14 <name="Unk14Strings",pos=unk14OffsetEntry[f].Unk14Offset, bgcolor=cBlack>;
         }
         
-        struct ClothOffsetEntry{
-            char Unk[8] <bgcolor=cWhite>;
-            int Offset1 <bgcolor=cBlue>;
-            int Size1  <bgcolor=cYellow>;
-            int Offset2 <bgcolor=cBlue>;
-            int Size2  <bgcolor=cYellow>;
-            int Offset3 <bgcolor=cBlue>;
-            int Size3  <bgcolor=cYellow>;
-        } clothOffsetEntry[renderman.ClothCount] <optimize=true,pos=renderman.ClothOffset>;
-        
-        
-        local struct Cloth_Info_1{
-            int Offset1 <bgcolor=cDkBlue>;
-            int Unk1 <bgcolor=cWhite>;
-            float x <bgcolor=cGreen>;
-            float y <bgcolor=cGreen>;
-            float z <bgcolor=cGreen>;
-            int Offset2 <bgcolor=cBlue>;
-            int Offset2Count <bgcolor=cYellow>;
-            int Unk3 <bgcolor=cWhite>;
-            int Offset3 <bgcolor=cBlue>;
-            int Unk4 <bgcolor=cWhite>;
-            int Unk5 <bgcolor=cWhite>;
-            int Unk6 <bgcolor=cWhite>;
-        };
-        local struct Cloth_Info_2{
-            int int1<bgcolor=cWhite>;
-            int int2<bgcolor=cWhite>;
-        };
-        local struct Cloth_Info_3(int Size){
-            char unk[Size]<bgcolor=cGray>;
-        };
-        local struct Cloth_Info_4{
-            char unk[16]<bgcolor=cLtGray>;
-        };
-        
-        local struct Cloth_Info_5{
-            char unk[4]<bgcolor=cWhite>;
-        };
-        local struct Cloth_Info_6{
-            char unk[6]<bgcolor=cGray>;
-        };
-        
-        for (int y = 0; y < renderman.ClothCount; y++) {
-           for (int a = 0; a < clothOffsetEntry[y].Size1; a++) {
-               FSeek(clothOffsetEntry[y].Offset1+a*48);
-               Cloth_Info_1 unk;
-               FSeek(unk.Offset1);
-               Cloth_Info_2 unk2;
-               if(unk.Offset2 != 0){
-                 FSeek(unk.Offset2);
-                 Cloth_Info_3 unk3(unk.Offset2Count*2);  
+        if(renderman.ClothCount != 0){
+            struct ClothOffsetEntry{
+                char Unk[8] <bgcolor=cWhite>;
+                int Offset1 <bgcolor=cBlue>;
+                int Size1  <bgcolor=cYellow>;
+                int Offset2 <bgcolor=cBlue>;
+                int Size2  <bgcolor=cYellow>;
+                int Offset3 <bgcolor=cBlue>;
+                int Size3  <bgcolor=cYellow>;
+            } clothOffsetEntry[renderman.ClothCount] <optimize=true,pos=renderman.ClothOffset>;
+            
+            
+            local struct Cloth_Info_1{
+                int Offset1 <bgcolor=cDkBlue>;
+                int Unk1 <bgcolor=cWhite>;
+                float x <bgcolor=cGreen>;
+                float y <bgcolor=cGreen>;
+                float z <bgcolor=cGreen>;
+                int Offset2 <bgcolor=cBlue>;
+                int Offset2Count <bgcolor=cYellow>;
+                int Unk3 <bgcolor=cWhite>;
+                int Offset3 <bgcolor=cBlue>;
+                int Unk4 <bgcolor=cWhite>;
+                int Unk5 <bgcolor=cWhite>;
+                int Unk6 <bgcolor=cWhite>;
+            };
+            local struct Cloth_Info_2{
+                int int1<bgcolor=cWhite>;
+                int int2<bgcolor=cWhite>;
+            };
+            local struct Cloth_Info_3(int Size){
+                char unk[Size]<bgcolor=cGray>;
+            };
+            local struct Cloth_Info_4{
+                char unk[16]<bgcolor=cLtGray>;
+            };
+            
+            local struct Cloth_Info_5{
+                char unk[4]<bgcolor=cWhite>;
+            };
+            local struct Cloth_Info_6{
+                char unk[6]<bgcolor=cGray>;
+            };
+            
+            for (int y = 0; y < renderman.ClothCount; y++) {
+               for (int a = 0; a < clothOffsetEntry[y].Size1; a++) {
+                   FSeek(clothOffsetEntry[y].Offset1+a*48);
+                   Cloth_Info_1 unk;
+                   FSeek(unk.Offset1);
+                   Cloth_Info_2 unk2;
+                   if(unk.Offset2 != 0){
+                     FSeek(unk.Offset2);
+                     Cloth_Info_3 unk3(unk.Offset2Count*2);  
+                   }
+                   if(unk.Offset3 != 0){
+                     FSeek(unk.Offset3);
+                     Cloth_Info_4 unk4;  
+                   }
                }
-               if(unk.Offset3 != 0){
-                 FSeek(unk.Offset3);
-                 Cloth_Info_4 unk4;  
+               for (int b = 0; b < clothOffsetEntry[y].Size2; b++) {
+                   FSeek(clothOffsetEntry[y].Offset2+b*4);
+                   Cloth_Info_5 unk;
                }
-           }
-           for (int b = 0; b < clothOffsetEntry[y].Size2; b++) {
-               FSeek(clothOffsetEntry[y].Offset2+b*4);
-               Cloth_Info_5 unk;
-           }
-           for (int c = 0; c < clothOffsetEntry[y].Size3; c++) {
-               FSeek(clothOffsetEntry[y].Offset3+c*6);
-               Cloth_Info_6 unk;
-           }
+               for (int c = 0; c < clothOffsetEntry[y].Size3; c++) {
+                   FSeek(clothOffsetEntry[y].Offset3+c*6);
+                   Cloth_Info_6 unk;
+               }
+            }
         }
         
         // Entries typically follow after this header, their contents depend on the type.

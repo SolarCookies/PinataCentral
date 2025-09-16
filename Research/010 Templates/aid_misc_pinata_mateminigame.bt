@@ -1,0 +1,48 @@
+//------------------------------------------------
+//--- 010 Editor v16.0 Binary Template
+//
+//      File: aid_misc_pinata_mateminigame
+//   Authors: SolarCookies
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+//BigEndian();
+struct Header{
+    float StartX <bgcolor=cDkRed>;
+    float StartY <bgcolor=cDkGreen>;
+    float EndX <bgcolor=cDkRed>;
+    float EndY <bgcolor=cDkGreen>;
+    float unk5;
+    float unk6;
+    float unk7;
+    float unk8;
+    float unk9;
+    float unk10;
+    float Time <bgcolor=cBlue>;
+    float unk12;
+    int unk13 <bgcolor=cGray>;
+    int unk14 <bgcolor=cGray>;
+    int unk15 <bgcolor=cGray>;
+    int unk16 <bgcolor=cGray>;
+    int unk17 <bgcolor=cGray>;
+    int unk18 <bgcolor=cGray>;
+    float unk19;
+    float unk20;
+    int unk21 <bgcolor=cGray>;
+    int unk22 <bgcolor=cGray>;
+    int unk23 <bgcolor=cGray>;
+    int ItemCount <bgcolor=cRed>;
+    int unk25 <bgcolor=cGray>;
+}header <bgcolor=cWhite>;
+
+struct Unk{
+    int unk1 <bgcolor=cWhite>;
+    int ItemID <bgcolor=cDkPurple>;
+    float X <bgcolor=cDkRed>;
+    float Y <bgcolor=cDkGreen>;
+    float z <bgcolor=cDkBlue>;
+}unk[header.ItemCount];
